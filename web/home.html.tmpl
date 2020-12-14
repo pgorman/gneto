@@ -1,0 +1,11 @@
+{{define "title"}}Gneto{{end}}
+{{template "header" .}}
+{{if .Error}}
+<div id="error">{{.Error}}</div>
+{{end}}
+
+{{if .Gemini}}
+<div id="gemini">{{.Gemini}}</div>
+{{end}}
+
+{{template "footer"}}

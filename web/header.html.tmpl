@@ -1,0 +1,23 @@
+{{define "header"}}
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="/favicon.png" type="image/png">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="stylesheet" type="text/css" href="/gneto.css">
+<title>{{template "title"}}</title>
+</head>
+<body>
+<div id="header">
+<div id="gneto-header-brand"><a href="/">Gneto</a></div>
+<div id="gneto-header-slogan">Your Personal Gemini-to-HTTP Proxy</div>
+<form id="url-form" action="/" method="POST">
+<label id="url-input-label" for="url">URL</label>
+<input id="url-input" name="url" type="url" value="{{.URL}}" autofocus>
+<button id="url-form-button">Go</button>
+</form>
+<div id="header-help"><a href="/help.html">Help</a></div>
+</div>
+{{end}}

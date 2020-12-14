@@ -1,0 +1,36 @@
+body {
+	background: #ddd;
+	color: #333;
+	font-family: serif;
+	font-size: 12pt;
+	line-height:1.25em;
+	margin: 1em 15% 1em 15%;
+}
+a {
+	font-weight: bold;
+	text-decoration: none;
+}
+h1, h2, h3, h4, h4 {
+	font-weight: bold;
+	font-family: sans-serif;
+}
+#gneto-header-brand a {
+	font-size: 1.5em;
+}
+#gneto-header-slogan {
+	font-size: 0.75em;
+	font-style: italic;
+}
+#gemini {
+	white-space: pre-wrap;
+}
+#header-help {
+	font-size: 0.8em;
+	text-align: right;
+}
+#url-form {
+	margin: 1em;
+}
+#url-input {
+	width: 45em;
+}

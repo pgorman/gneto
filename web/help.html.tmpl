@@ -1,0 +1,28 @@
+{{define "title"}}Gneto{{end}}
+{{template "header" .}}
+{{if .Error}}
+<div id="error">{{.Error}}</div>
+{{end}}
+<h1>Gneto Help</h1>
+
+<h2>What's Gemini</h2>
+
+<p><a href="https://gemini.circumlunar.space/">Gemini</a> is a protocol, similar to HTTP or Gopher.</p>
+
+<h2>How do I find Gemini content?</h2>
+
+<p>See the <a href="https://gemini.circumlunar.space/docs/faq.html">Gemini FAQ</a> or browse the <a href="gemini://gemini.circumlunar.space/capcom/">CAPCOM</a> content aggregator.
+
+<h2>How do I customize how Gneto looks?</h2>
+
+<p>When running Gneto, the <code>--css</code> command-line option allows you to specify a custom cascading style sheet, like:</p>
+
+<pre>$ gneto --css $HOME/.gneto/custom.css</pre>
+
+<h2>What command-line options does Gneto accept?</h2>
+
+Run:
+
+<pre>$ gneto --help</pre>
+
+{{template "footer"}}
