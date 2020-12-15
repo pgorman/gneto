@@ -45,7 +45,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 					r++
 					continue
 				} else {
-					log.Printf("too many redirects, ending at %s\n", err)
+					err = fmt.Errorf("too many redirects, ending at %s\n", err)
 					r = maxRedirects + 1
 					break
 				}

@@ -29,6 +29,12 @@ h1, h2, h3, h4, h4 {
 pre {
 	margin: 2em 0 2em 0;
 }
+#error {
+	color: #ddd;
+	background-color: #660000;
+	padding: 1em;
+	margin: 1em 0 1em 0;
+}
 #gneto-header-brand a {
 	font-size: 1.5em;
 }
