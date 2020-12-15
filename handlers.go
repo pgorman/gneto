@@ -16,6 +16,7 @@ import (
 type tableData struct {
 	Gemini template.HTML
 	Error  string
+	Title  string
 	URL    string
 }
 
@@ -62,6 +63,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		td.Error = err.Error()
 	}
 	td.URL = u
+	td.Title = "Gneto " + td.URL
 	td.Gemini = template.HTML(geminiToHTML(u, gemini))
 
 	err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
