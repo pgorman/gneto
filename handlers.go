@@ -7,14 +7,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 type tableData struct {
-	Gemini string
+	Gemini template.HTML
 	Error  string
 	URL    string
 }
@@ -58,8 +58,11 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var td tableData
+	if err != nil {
+		td.Error = err.Error()
+	}
 	td.URL = u
-	td.Gemini = strings.Join(gemini, "\n")
+	td.Gemini = template.HTML(geminiToHTML(u, gemini))
 
 	err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
 	if err != nil {

@@ -1,7 +1,7 @@
 Gneto
 ========================================
 
-Gneto is a personal proxy to make content from the [Gemini Protocol](https://gemini.circumlunar.space/) available over HTTP.
+Gneto is a personal proxy server to make content from the [Gemini Protocol](https://gemini.circumlunar.space/) available over HTTP.
 
 Start Gneto like:
 
@@ -29,6 +29,6 @@ $ ./gneto
 Copyright
 ----------------------------------------
 
-Gneto copyright Paul Gorman 2020.
+Gneto copyright 2020 Paul Gorman.
 
 Licensed under the GPL. See LICENSE.txt for details.

@@ -1,29 +1,36 @@
 blockquote {
 	border: none;
-	border-left: 1em solid #ccc;
+	border-left: 1em solid #444;
 	padding-left: 1em;
 	margin: 0.5em 6em 0.5em 3em;
 }
 body {
-	background: #ddd;
-	color: #111;
+	background: #333;
+	color: #ddd;
 	font-family: serif;
 	font-size: 12pt;
 	line-height:1.4em;
 	margin: 1em 15% 1em 15%;
 }
 a {
-	color: #cc3300;
+	color: #ff9900;
 	font-weight: bold;
 	text-decoration: none;
 }
 a:visited {
-	color: #660000;
+	color: #ffcc66;
+}
+br {
+	height: 0;
 }
 h1, h2, h3, h4, h4 {
 	font-weight: bold;
 	font-family: sans-serif;
 	line-height: 2em;
+}
+input {
+	background-color: #666;
+	color: #eee;
 }
 pre {
 	margin: 2em 0 2em 0;
