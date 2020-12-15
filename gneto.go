@@ -57,7 +57,7 @@ func absoluteURL(baseURL string, lineURL string) (*url.URL, error) {
 }
 
 // geminiToHTML parses a slice of Gemini lines, and returns HTML as one big string.
-func geminiToHTML(u string, gemini []string) string {
+func geminiToHTML(baseURL string, gemini []string) string {
 	html := make([]string, 0, 500)
 	list := false
 	pre := false
@@ -141,36 +141,31 @@ func geminiToHTML(u string, gemini []string) string {
 			}
 
 			link := reGemLink.FindStringSubmatch(line)
-			linkURL, err := absoluteURL(u, link[1])
-			link[1] = linkURL.String()
+			u, err := absoluteURL(baseURL, link[1])
 			if err != nil {
 				html = append(html, "<p>"+line+"</p>")
 				continue
 			}
-			if linkURL.Scheme != "gemini" {
+			link[1] = u.String()
+
+			if u.Scheme == "gemini" || u.Scheme == "gopher" {
 				if link[2] != "" {
-					html = append(html, `<p><a href="`+link[1]+`">`+link[2]+`</a> <span class="scheme">[`+linkURL.Scheme+"]</span></p>")
+					html = append(html, `<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[2]+
+						`</a> <span class="scheme"><a href="`+link[1]+`">[`+u.Scheme+`]</a></span></p>`)
 				} else {
-					html = append(html, `<p><a href="`+link[1]+`">`+link[1]+`</a> <span class="scheme">[`+linkURL.Scheme+"]</span></p>")
+					html = append(html, `<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[1]+
+						`</a> <span class="scheme"><a href="`+link[1]+`">[`+u.Scheme+`]</a></span></p>`)
 				}
-				continue
+			} else {
+				if link[2] != "" {
+					html = append(html, `<p><a href="`+link[1]+`">`+link[2]+
+						`</a> <span class="scheme"><a href="`+link[1]+`">[`+u.Scheme+`]</a></span></p>`)
+				} else {
+					html = append(html, `<p><a href="`+link[1]+`">`+link[1]+
+						`</a> <span class="scheme"><a href="`+link[1]+`">[`+u.Scheme+`]</a></span></p>`)
+				}
 			}
 
-			if link[2] != "" {
-				html = append(html, `<p><a href="/?url=`+
-					url.QueryEscape(link[1])+
-					`">`+
-					link[2]+`</a> <a href="`+
-					link[1]+
-					`">↗</a></p>`)
-			} else {
-				html = append(html, `<p><a href="/?url=`+
-					url.QueryEscape(link[1])+
-					`">`+
-					link[1]+`</a> <a href="`+
-					link[1]+
-					`">↗</a></p>`)
-			}
 			continue
 		}
 

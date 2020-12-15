@@ -50,7 +50,11 @@ pre {
 	margin: 1em;
 }
 span.scheme {
-	font-size: 0.75em;
+	font-size: 0.7em;
+	margin-left: 1em;
+}
+span.scheme a {
+	font-weight: normal;
 }
 #url-input {
 	width: 45em;
