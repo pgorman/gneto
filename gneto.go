@@ -97,6 +97,7 @@ func geminiToHTML(u string, gemini []string) string {
 			}
 			if pre == true {
 				html = append(html, line)
+				continue
 			}
 			html = append(html, "<h1>"+reGemH1.FindStringSubmatch(line)[1]+"</h1>")
 			continue
@@ -109,6 +110,7 @@ func geminiToHTML(u string, gemini []string) string {
 			}
 			if pre == true {
 				html = append(html, line)
+				continue
 			}
 			html = append(html, "<h2>"+reGemH2.FindStringSubmatch(line)[1]+"</h2>")
 			continue
@@ -121,6 +123,7 @@ func geminiToHTML(u string, gemini []string) string {
 			}
 			if pre == true {
 				html = append(html, line)
+				continue
 			}
 			html = append(html, "<h3>"+reGemH3.FindStringSubmatch(line)[1]+"</h3>")
 			continue
