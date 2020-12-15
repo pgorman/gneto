@@ -20,20 +20,7 @@ func geminiToHTML(baseURL string, gemini []string) string {
 	pre := false
 
 	for _, line := range gemini {
-		if reGemBlank.MatchString(line) {
-			if pre == true {
-				html = append(html, line)
-			} else {
-				html = append(html, "<br>")
-			}
-			continue
-		}
-
 		if reGemPre.MatchString(line) {
-			if list == true {
-				list = false
-				html = append(html, "</ul>")
-			}
 			if pre == true {
 				pre = false
 				html = append(html, "</pre>")
@@ -47,14 +34,22 @@ func geminiToHTML(baseURL string, gemini []string) string {
 			}
 		}
 
+		if pre == true {
+
+			line = strings.ReplaceAll(line, "<", "&lt;")
+			html = append(html, line)
+			continue
+		}
+
+		if reGemBlank.MatchString(line) {
+			html = append(html, "<br>")
+			continue
+		}
+
 		if reGemH1.MatchString(line) {
 			if list == true {
 				list = false
 				html = append(html, "</ul>")
-			}
-			if pre == true {
-				html = append(html, line)
-				continue
 			}
 			html = append(html, "<h1>"+reGemH1.FindStringSubmatch(line)[1]+"</h1>")
 			continue
@@ -65,10 +60,6 @@ func geminiToHTML(baseURL string, gemini []string) string {
 				list = false
 				html = append(html, "</ul>")
 			}
-			if pre == true {
-				html = append(html, line)
-				continue
-			}
 			html = append(html, "<h2>"+reGemH2.FindStringSubmatch(line)[1]+"</h2>")
 			continue
 		}
@@ -77,10 +68,6 @@ func geminiToHTML(baseURL string, gemini []string) string {
 			if list == true {
 				list = false
 				html = append(html, "</ul>")
-			}
-			if pre == true {
-				html = append(html, line)
-				continue
 			}
 			html = append(html, "<h3>"+reGemH3.FindStringSubmatch(line)[1]+"</h3>")
 			continue
@@ -92,9 +79,6 @@ func geminiToHTML(baseURL string, gemini []string) string {
 			if list == true {
 				list = false
 				html = append(html, "</ul>")
-			}
-			if pre == true {
-				html = append(html, line)
 			}
 
 			link := reGemLink.FindStringSubmatch(line)
@@ -131,9 +115,6 @@ func geminiToHTML(baseURL string, gemini []string) string {
 				list = true
 				html = append(html, "<ul>")
 			}
-			if pre == true {
-				html = append(html, line)
-			}
 			html = append(html, "<li>"+reGemList.FindStringSubmatch(line)[1]+"</li>")
 			continue
 		}
@@ -143,15 +124,7 @@ func geminiToHTML(baseURL string, gemini []string) string {
 				list = false
 				html = append(html, "</ul>")
 			}
-			if pre == true {
-				html = append(html, line)
-			}
 			html = append(html, "<blockquote>"+reGemQuote.FindStringSubmatch(line)[1]+"</blockquote>")
-			continue
-		}
-
-		if pre == true {
-			html = append(html, line)
 			continue
 		}
 
