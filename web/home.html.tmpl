@@ -1,9 +1,7 @@
 {{template "header" .}}
 {{if .Error}}
 <div id="error">ERROR: {{.Error}}</div>
-{{end}}
-
-{{if .Gemini}}
+{{else if .Gemini}}
 <div id="gemini">{{.Gemini}}</div>
 {{else}}
 <div id="home">
