@@ -51,6 +51,9 @@ pre {
 	font-size: 0.75em;
 	font-style: italic;
 }
+#header {
+	margin: 1.5em 0 1em 0;
+}
 #header-help {
 	font-size: 0.8em;
 	text-align: right;
@@ -66,8 +69,14 @@ span.scheme a {
 	font-weight: normal;
 }
 #url-form {
-	margin: 1em;
+	margin: 1.2em 0 1.2em 0;
 }
 #url-input {
-	width: 45em;
+	border: 1px solid #888;
+	font-size: 1.3em;
+	padding: 0.25em;
+	width: 75%;
+}
+#url-input-label {
+	display: none;
 }
