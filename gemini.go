@@ -20,7 +20,6 @@ import (
 // The source URL is stored in u.
 func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 	var err error
-	var html string
 	list := false
 	pre := false
 
@@ -70,19 +69,19 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 				list = false
 				io.WriteString(w, "</ul>\n")
 			}
-			io.WriteString(w, html+"<h1>"+reGemH1.FindStringSubmatch(line)[1]+"</h1>\n")
+			io.WriteString(w, "<h1>"+reGemH1.FindStringSubmatch(line)[1]+"</h1>\n")
 		} else if reGemH2.MatchString(line) {
 			if list == true {
 				list = false
 				io.WriteString(w, "</ul>\n")
 			}
-			io.WriteString(w, html+"<h2>"+reGemH2.FindStringSubmatch(line)[1]+"</h2>\n")
+			io.WriteString(w, "<h2>"+reGemH2.FindStringSubmatch(line)[1]+"</h2>\n")
 		} else if reGemH3.MatchString(line) {
 			if list == true {
 				list = false
 				io.WriteString(w, "</ul>\n")
 			}
-			io.WriteString(w, html+"<h3>"+reGemH3.FindStringSubmatch(line)[1]+"</h3>\n")
+			io.WriteString(w, "<h3>"+reGemH3.FindStringSubmatch(line)[1]+"</h3>\n")
 		} else if reGemLink.MatchString(line) {
 			if list == true {
 				list = false
@@ -92,24 +91,24 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 			link := reGemLink.FindStringSubmatch(line)
 			lineURL, err := absoluteURL(u, link[1])
 			if err != nil {
-				io.WriteString(w, html+"<p>"+line+"</p>\n")
+				io.WriteString(w, "<p>"+line+"</p>\n")
 			}
 			link[1] = lineURL.String()
 
 			if lineURL.Scheme == "gemini" {
 				if link[2] != "" {
-					io.WriteString(w, html+`<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[2]+
+					io.WriteString(w, `<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[2]+
 						`</a> <span class="scheme"><a href="`+link[1]+`">[`+lineURL.Scheme+`]</a></span></p>`+"\n")
 				} else {
-					io.WriteString(w, html+`<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[1]+
+					io.WriteString(w, `<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[1]+
 						`</a> <span class="scheme"><a href="`+link[1]+`">[`+lineURL.Scheme+`]</a></span></p>`+"\n")
 				}
 			} else {
 				if link[2] != "" {
-					io.WriteString(w, html+`<p><a href="`+link[1]+`">`+link[2]+
+					io.WriteString(w, `<p><a href="`+link[1]+`">`+link[2]+
 						`</a> <span class="scheme"><a href="`+link[1]+`">[`+lineURL.Scheme+`]</a></span></p>`+"\n")
 				} else {
-					io.WriteString(w, html+`<p><a href="`+link[1]+`">`+link[1]+
+					io.WriteString(w, `<p><a href="`+link[1]+`">`+link[1]+
 						`</a> <span class="scheme"><a href="`+link[1]+`">[`+lineURL.Scheme+`]</a></span></p>`+"\n")
 				}
 			}
@@ -118,13 +117,13 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 				list = true
 				io.WriteString(w, "<ul>")
 			}
-			io.WriteString(w, html+"<li>"+reGemList.FindStringSubmatch(line)[1]+"</li>\n")
+			io.WriteString(w, "<li>"+reGemList.FindStringSubmatch(line)[1]+"</li>\n")
 		} else if reGemQuote.MatchString(line) {
 			if list == true {
 				list = false
 				io.WriteString(w, "</ul>")
 			}
-			io.WriteString(w, html+"<blockquote>"+reGemQuote.FindStringSubmatch(line)[1]+"</blockquote>\n")
+			io.WriteString(w, "<blockquote>"+reGemQuote.FindStringSubmatch(line)[1]+"</blockquote>\n")
 		} else {
 			io.WriteString(w, line+"<br>\n")
 		}
@@ -176,12 +175,21 @@ func proxyGemini(w http.ResponseWriter, u *url.URL) (*url.URL, error) {
 
 	switch status[0] {
 	case "1"[0]:
-		// TODO: Get user input.
+		switch status[1] {
+		case "1"[0]:
+			// TODO: 11 Get user password.
+		default:
+			// TODO: 1X Get user input.
+			// as an escaped, unnamed query, like gemini://gus.guru/search?twtxt
+		}
 	case "2"[0]:
-		if strings.Contains(status, "text/gemini") {
+		if strings.Contains(status, " text/gemini") {
 			geminiToHTML(w, u, rd)
+		} else if strings.Contains(status, " text") {
+			// TODO: Handle non-Gemini text (with a pre wrapper?).
+			textToHTML(w, u, rd)
 		} else {
-			log.Printf("proxyGemini: MIME type not text/gemini: '%s'", status)
+			log.Printf("proxyGemini: MIME type not text: '%s'", status)
 		}
 	case "3"[0]:
 		ru, err := url.Parse(strings.TrimSpace(strings.SplitAfterN(status, " ", 2)[1]))
@@ -202,4 +210,43 @@ func proxyGemini(w http.ResponseWriter, u *url.URL) (*url.URL, error) {
 	}
 
 	return u, err
+}
+
+// textToHTML reads non-Gemini text from rd, and writes its HTML equivalent to w.
+// The source URL is stored in u.
+func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
+	var err error
+
+	var td templateData
+	if err != nil {
+		td.Error = err.Error()
+	}
+	td.URL = u.String()
+	td.Title = "Gneto " + td.URL
+
+	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", 500)
+	}
+
+	io.WriteString(w, `<pre id="non-gemini-text">`+"\n")
+	var eof error
+	var line string
+	for eof == nil {
+		line, eof = rd.ReadString("\n"[0])
+		if optDebug {
+			fmt.Println(line)
+		}
+		io.WriteString(w, line+"\n")
+	}
+	io.WriteString(w, "</pre>\n")
+
+	err = tmpls.ExecuteTemplate(w, "footer-only.html.tmpl", td)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", 500)
+	}
+
+	return err
 }

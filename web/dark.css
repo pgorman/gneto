@@ -55,6 +55,9 @@ pre {
 	font-size: 0.8em;
 	text-align: right;
 }
+#non-gemini-text {
+	white-space: pre-wrap;
+}
 span.scheme {
 	font-size: 0.7em;
 	margin-left: 1em;

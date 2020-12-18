@@ -49,8 +49,8 @@ pre {
 	font-size: 0.8em;
 	text-align: right;
 }
-#url-form {
-	margin: 1em;
+#non-gemini-text {
+	white-space: pre-wrap;
 }
 span.scheme {
 	font-size: 0.7em;
@@ -58,6 +58,9 @@ span.scheme {
 }
 span.scheme a {
 	font-weight: normal;
+}
+#url-form {
+	margin: 1em;
 }
 #url-input {
 	width: 45em;
