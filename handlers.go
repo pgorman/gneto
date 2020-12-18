@@ -62,9 +62,14 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 			}
 			break
 		}
+	} else {
+		err = fmt.Errorf("proxy: proxying of %s not supported (%s)", u.Scheme, u.String())
 	}
 
 	if err != nil {
+		if optDebug {
+			log.Println(err)
+		}
 		var td templateData
 		td.Error = err.Error()
 		td.URL = u.String()
