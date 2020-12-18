@@ -26,6 +26,23 @@ $ go build
 $ ./gneto
 ```
 
+
+Limitations and Known Bugs
+----------------------------------------
+
+The following features are not yet supported, but are planned:
+
+- transfer of non-text types over Gemini (This is a priority.)
+- user input
+- client certificates
+
+The following features may be implemented in the future:
+
+- proxy Gopher content
+- a "raw" mode to show the original, unrendered source text
+- password protection of the proxy (cookie-based or basic auth security)
+
+
 Copyright
 ----------------------------------------
 

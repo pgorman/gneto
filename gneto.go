@@ -34,8 +34,15 @@ var reStatus *regexp.Regexp
 var status bool
 var tmpls *template.Template
 
+type templateData struct {
+	HTML  template.HTML
+	Error string
+	Title string
+	URL   string
+}
+
 // absoluteURL makes lineURL absolute using, if necessary, the host and path of baseURL.
-func absoluteURL(baseURL string, lineURL string) (*url.URL, error) {
+func absoluteURL(baseURL *url.URL, lineURL string) (*url.URL, error) {
 	var err error
 
 	u, err := url.Parse(lineURL)
@@ -43,12 +50,7 @@ func absoluteURL(baseURL string, lineURL string) (*url.URL, error) {
 		return u, err
 	}
 
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return u, err
-	}
-
-	return base.ResolveReference(u), err
+	return baseURL.ResolveReference(u), err
 }
 
 func init() {
@@ -65,7 +67,9 @@ func init() {
 	templateFiles := []string{
 		"./web/home.html.tmpl",
 		"./web/footer.html.tmpl",
+		"./web/footer-only.html.tmpl",
 		"./web/header.html.tmpl",
+		"./web/header-only.html.tmpl",
 		"./web/help.html.tmpl",
 	}
 	tmpls = template.Must(template.ParseFiles(templateFiles...))
@@ -84,7 +88,7 @@ func init() {
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", home)
+	mux.HandleFunc("/", proxy)
 	mux.HandleFunc("/gneto.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, optCSSFile)
 	})
