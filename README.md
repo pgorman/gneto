@@ -32,7 +32,6 @@ Limitations and Known Bugs
 
 The following features are not yet supported, but are planned:
 
-- transfer of non-text types over Gemini (This is a priority.)
 - user input
 - client certificates
 

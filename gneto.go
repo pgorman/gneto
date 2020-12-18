@@ -31,7 +31,6 @@ var reGemList *regexp.Regexp
 var reGemPre *regexp.Regexp
 var reGemQuote *regexp.Regexp
 var reStatus *regexp.Regexp
-var status bool
 var tmpls *template.Template
 
 type templateData struct {
@@ -56,7 +55,7 @@ func absoluteURL(baseURL *url.URL, lineURL string) (*url.URL, error) {
 func init() {
 	flag.StringVar(&optAddr, "addr", "127.0.0.1", "IP address on which to serve web interface")
 	flag.StringVar(&optCertFile, "cert", "", "TLS certificate file")
-	flag.StringVar(&optCSSFile, "css", "./web/gneto.css", "path to cascading sytle sheets file")
+	flag.StringVar(&optCSSFile, "css", "./web/gneto.css", "path to cascading style sheets file")
 	flag.BoolVar(&optDebug, "debug", false, "print very verbose debugging output")
 	flag.StringVar(&optKeyFile, "key", "", "TLS key file")
 	flag.IntVar(&maxRedirects, "r", 5, "maximum redirects to follow")
@@ -95,14 +94,14 @@ func main() {
 	mux.HandleFunc("/help.html", func(w http.ResponseWriter, r *http.Request) {
 		err := tmpls.ExecuteTemplate(w, "help.html.tmpl", nil)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println("main:", err.Error())
 			http.Error(w, "Internal Server Error", 500)
 		}
 	})
 
 	if optCertFile != "" && optKeyFile != "" {
 		if optVerbose {
-			log.Printf("starting HTTPS server on %s", optAddr+":"+optPort)
+			log.Printf("main: starting HTTPS server on %s", optAddr+":"+optPort)
 		}
 		err := http.ListenAndServeTLS(optAddr+":"+optPort, optCertFile, optKeyFile, mux)
 		if err != nil {
@@ -111,7 +110,7 @@ func main() {
 	}
 
 	if optVerbose {
-		log.Printf("serving insecure HTTP server on %s", optAddr+":"+optPort)
+		log.Printf("main: serving insecure HTTP server on %s", optAddr+":"+optPort)
 	}
 	err := http.ListenAndServe(optAddr+":"+optPort, mux)
 	if err != nil {

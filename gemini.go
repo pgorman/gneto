@@ -10,10 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
+	"time"
 )
 
 // geminiToHTML reads Gemini text from rd, and writes its HTML equivalent to w.
@@ -32,7 +35,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 
 	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
 	if err != nil {
-		log.Println(err)
+		log.Println("geminiToHTML:", err)
 		http.Error(w, "Internal Server Error", 500)
 	}
 
@@ -131,7 +134,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 
 	err = tmpls.ExecuteTemplate(w, "footer-only.html.tmpl", td)
 	if err != nil {
-		log.Println(err)
+		log.Println("geminiToHTML:", err)
 		http.Error(w, "Internal Server Error", 500)
 	}
 
@@ -139,7 +142,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 }
 
 // proxyGemini finds the Gemini content at u.
-func proxyGemini(w http.ResponseWriter, u *url.URL) (*url.URL, error) {
+func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, error) {
 	var err error
 	var rd *bufio.Reader
 
@@ -163,10 +166,11 @@ func proxyGemini(w http.ResponseWriter, u *url.URL) (*url.URL, error) {
 	rd = bufio.NewReader(conn)
 
 	status, err := rd.ReadString("\n"[0])
+	status = strings.Trim(status, "\r\n")
 	if err != nil {
 		return u, fmt.Errorf("proxyGemini: failed to read status line from buffer: %v", err)
 	}
-	if optDebug {
+	if optVerbose || optDebug {
 		log.Printf("proxyGemini: %s status: %s", u.String(), status)
 	}
 	if !reStatus.MatchString(status) {
@@ -184,12 +188,20 @@ func proxyGemini(w http.ResponseWriter, u *url.URL) (*url.URL, error) {
 		}
 	case "2"[0]:
 		if strings.Contains(status, " text/gemini") {
-			geminiToHTML(w, u, rd)
+			err = geminiToHTML(w, u, rd)
+			if err != nil {
+				break
+			}
 		} else if strings.Contains(status, " text") {
-			// TODO: Handle non-Gemini text (with a pre wrapper?).
-			textToHTML(w, u, rd)
+			err = textToHTML(w, u, rd)
+			if err != nil {
+				break
+			}
 		} else {
-			log.Printf("proxyGemini: MIME type not text: '%s'", status)
+			err = serveFile(w, r, u, rd)
+			if err != nil {
+				break
+			}
 		}
 	case "3"[0]:
 		ru, err := url.Parse(strings.TrimSpace(strings.SplitAfterN(status, " ", 2)[1]))
@@ -212,6 +224,33 @@ func proxyGemini(w http.ResponseWriter, u *url.URL) (*url.URL, error) {
 	return u, err
 }
 
+// serveFile saves a temporary file with the contents of rd, then serves it to w.
+func serveFile(w http.ResponseWriter, r *http.Request, u *url.URL, rd *bufio.Reader) error {
+	var err error
+	fileName := u.String()[strings.LastIndex(u.String(), "/")+1:]
+
+	f, err := ioutil.TempFile("", "gneto*-"+fileName)
+	if err != nil {
+		err = fmt.Errorf("serveFile: failed to create temp file:", err)
+	}
+	defer os.Remove(f.Name()) // clean up
+
+	if _, err := f.ReadFrom(rd); err != nil {
+		err = fmt.Errorf("serveFile: failed to write to temp file:", err)
+	}
+
+	// Note: If we ever want to serve images inline, we'll have to revisit
+	// this content disposition header value.
+	w.Header().Set("Content-Disposition", "attachment; filename="+fileName)
+	http.ServeContent(w, r, fileName, time.Time{}, f)
+
+	if err := f.Close(); err != nil {
+		err = fmt.Errorf("serveFile: failed to close temp file:", err)
+	}
+
+	return err
+}
+
 // textToHTML reads non-Gemini text from rd, and writes its HTML equivalent to w.
 // The source URL is stored in u.
 func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
@@ -226,7 +265,7 @@ func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 
 	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
 	if err != nil {
-		log.Println(err)
+		log.Println("textToHTML:", err)
 		http.Error(w, "Internal Server Error", 500)
 	}
 
@@ -244,7 +283,7 @@ func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 
 	err = tmpls.ExecuteTemplate(w, "footer-only.html.tmpl", td)
 	if err != nil {
-		log.Println(err)
+		log.Println("textToHTML:", err)
 		http.Error(w, "Internal Server Error", 500)
 	}
 

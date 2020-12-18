@@ -23,9 +23,6 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Query().Get("url") == "" {
 		var td templateData
-		if err != nil {
-			td.Error = err.Error()
-		}
 		td.URL = ""
 		td.Title = "Gneto " + td.URL
 		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
@@ -45,15 +42,14 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 	if u.Scheme == "gemini" {
 		for i := 0; i <= maxRedirects; i++ {
-			log.Println("possible redirects, iteration", i)
-			u, err = proxyGemini(w, u)
-			if u.Scheme != "gemini" {
+			u, err = proxyGemini(w, r, u)
+			if u != nil && u.Scheme != "gemini" {
 				// Redirect to home?
 				http.Redirect(w, r, u.String(), http.StatusFound)
 			}
 			if err != nil && errors.Is(err, errRedirect) {
 				if i < maxRedirects-1 {
-					log.Printf("redirecting to %s\n", err)
+					log.Printf("proxy: redirecting to %s\n", err)
 					continue
 				} else {
 					err = fmt.Errorf("too many redirects, ending at %s", u.String())
@@ -70,9 +66,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		var td templateData
-		if err != nil {
-			td.Error = err.Error()
-		}
+		td.Error = err.Error()
 		td.URL = u.String()
 		td.Title = "Gneto " + td.URL
 		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
