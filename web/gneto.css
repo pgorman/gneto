@@ -1,31 +1,39 @@
-
 blockquote {
 	border: none;
-	border-left: 1em solid #eee;
+	border-left: 1em solid #444;
 	padding-left: 1em;
 	margin: 0.5em 6em 0.5em 3em;
 }
 body {
-	background: #f8f8f8;
-	color: #333;
+	background: #333;
+	color: #ddd;
 	font-family: serif;
 	font-size: 12pt;
 	line-height:1.4em;
 	margin: 1em 15% 1em 15%;
 }
 a {
-	color: #3399ff;
+	color: #ff9900;
 	font-weight: bold;
 	text-decoration: none;
 }
 a:visited {
-	color: #0066cc;
+	color: #ffcc66;
+}
+br {
+	line-height: 1rem;
 }
 h1, h2, h3, h4, h4 {
 	font-weight: bold;
 	font-family: sans-serif;
 	line-height: 2em;
 	margin: 1em 0 0 0;
+}
+input, textarea {
+	border: 1px solid #888;
+	background-color: #666;
+	color: #eee;
+    font-size: 1.1em;
 }
 pre {
 	font-family: monospace;
@@ -66,7 +74,6 @@ span.scheme a {
 	margin: 1.2em 0 1.2em 0;
 }
 #url-input {
-	border: 1px solid #ddd;
 	font-size: 1.3em;
 	padding: 0.25em;
 	width: 75%;
