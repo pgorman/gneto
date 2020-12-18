@@ -1,6 +1,10 @@
 // Copyright 2020 Paul Gorman.
 
 // Gneto makes Gemini pages available over HTTP.
+//
+// See the Project Gemini documentation and spec at:
+// https://gemini.circumlunar.space/docs/specification.html
+// gemini://gemini.circumlunar.space/docs/
 
 package main
 
@@ -27,12 +31,8 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 	pre := false
 
 	var td templateData
-	if err != nil {
-		td.Error = err.Error()
-	}
 	td.URL = u.String()
 	td.Title = "Gneto " + td.URL
-
 	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
 	if err != nil {
 		log.Println("geminiToHTML:", err)
@@ -48,6 +48,10 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 		}
 
 		if reGemPre.MatchString(line) {
+			if list {
+				list = false
+				io.WriteString(w, "</ul>\n")
+			}
 			if pre == true {
 				pre = false
 				io.WriteString(w, "</pre>\n")
@@ -128,6 +132,10 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 			}
 			io.WriteString(w, "<blockquote>"+reGemQuote.FindStringSubmatch(line)[1]+"</blockquote>\n")
 		} else {
+			if list {
+				list = false
+				io.WriteString(w, "</ul>\n")
+			}
 			io.WriteString(w, line+"<br>\n")
 		}
 	}
@@ -178,15 +186,24 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	}
 
 	switch status[0] {
-	case "1"[0]:
+	case "1"[0]: // Status: input
 		switch status[1] {
-		case "1"[0]:
+		case "1"[0]: // 11 == sensitive input/password
 			// TODO: 11 Get user password.
 		default:
 			// TODO: 1X Get user input.
 			// as an escaped, unnamed query, like gemini://gus.guru/search?twtxt
+			var td templateData
+			td.URL = u.String()
+			td.Title = "Gneto " + td.URL
+			td.Meta = status[3:]
+			err = tmpls.ExecuteTemplate(w, "input.html.tmpl", td)
+			if err != nil {
+				err = fmt.Errorf("proxyGemini: failed to execute input template: %v", err)
+				break
+			}
 		}
-	case "2"[0]:
+	case "2"[0]: // Status: success
 		if strings.Contains(status, " text/gemini") {
 			err = geminiToHTML(w, u, rd)
 			if err != nil {
@@ -203,10 +220,11 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 				break
 			}
 		}
-	case "3"[0]:
+	case "3"[0]: // Status: redirect
 		ru, err := url.Parse(strings.TrimSpace(strings.SplitAfterN(status, " ", 2)[1]))
 		if err != nil {
-			return u, fmt.Errorf("proxyGemini: can't parse redirect URL %s: %v", strings.SplitAfterN(status, " ", 2)[1], err)
+			err = fmt.Errorf("proxyGemini: can't parse redirect URL %s: %v", strings.SplitAfterN(status, " ", 2)[1], err)
+			break
 		}
 		if ru.Host == "" {
 			ru.Host = u.Host
@@ -216,9 +234,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		}
 		errRedirect = errors.New(u.String())
 		err = errRedirect
-		return ru, err
-	default:
-		return u, fmt.Errorf("proxyGemini: status: %s", status)
+		u = ru
+	default: // Statuses 40+ indicate various failures.
+		err = fmt.Errorf("proxyGemini: status: %s", status)
 	}
 
 	return u, err
@@ -257,12 +275,8 @@ func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 	var err error
 
 	var td templateData
-	if err != nil {
-		td.Error = err.Error()
-	}
 	td.URL = u.String()
 	td.Title = "Gneto " + td.URL
-
 	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
 	if err != nil {
 		log.Println("textToHTML:", err)
