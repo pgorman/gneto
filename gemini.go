@@ -209,8 +209,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		if strings.Contains(status, " text/gemini") {
 			if r.URL.Query().Get("source") != "" {
 				err = textToHTML(w, u, rd)
+			} else {
+				err = geminiToHTML(w, u, rd)
 			}
-			err = geminiToHTML(w, u, rd)
 			if err != nil {
 				break
 			}

@@ -28,7 +28,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// TODO: Test everything to not show secrent in web interface or logs.
+		// TODO: Test everything to not show secret in web interface or logs.
 		if r.FormValue("secret") != "" {
 			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("secret"))
 			if optVerbose || optDebug {
