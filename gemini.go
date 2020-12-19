@@ -187,14 +187,18 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 
 	switch status[0] {
 	case "1"[0]: // Status: input
+		var td templateData
+		td.URL = u.String()
+		td.Title = "Gneto " + td.URL
+		td.Meta = status[3:]
 		switch status[1] {
 		case "1"[0]: // 11 == sensitive input/password
-			// TODO: 11 Get user password.
+			err = tmpls.ExecuteTemplate(w, "password.html.tmpl", td)
+			if err != nil {
+				err = fmt.Errorf("proxyGemini: failed to execute password template: %v", err)
+				break
+			}
 		default:
-			var td templateData
-			td.URL = u.String()
-			td.Title = "Gneto " + td.URL
-			td.Meta = status[3:]
 			err = tmpls.ExecuteTemplate(w, "input.html.tmpl", td)
 			if err != nil {
 				err = fmt.Errorf("proxyGemini: failed to execute input template: %v", err)
@@ -203,6 +207,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		}
 	case "2"[0]: // Status: success
 		if strings.Contains(status, " text/gemini") {
+			if r.URL.Query().Get("source") != "" {
+				err = textToHTML(w, u, rd)
+			}
 			err = geminiToHTML(w, u, rd)
 			if err != nil {
 				break

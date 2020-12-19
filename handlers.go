@@ -20,12 +20,22 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost && r.FormValue("url") != "" {
 		targetURL = r.FormValue("url")
+
 		if r.FormValue("input") != "" {
-			targetURL = targetURL+"?"+url.QueryEscape(r.FormValue("input"))
+			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("input"))
 			if optVerbose || optDebug {
 				log.Println("proxy: submitting Gemini input:", targetURL)
 			}
 		}
+
+		// TODO: Test everything to not show secrent in web interface or logs.
+		if r.FormValue("secret") != "" {
+			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("secret"))
+			if optVerbose || optDebug {
+				log.Printf("proxy: submitting Gemini sensitive input: %s?REDACTED_SECRET", r.FormValue("url"))
+			}
+		}
+
 		http.Redirect(w, r, "/?url="+url.QueryEscape(targetURL), http.StatusFound)
 	}
 

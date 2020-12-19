@@ -18,6 +18,9 @@
 <input id="url-input" name="url" type="url" value="{{.URL}}">
 <button id="url-form-button">Go</button>
 </form>
-<div id="header-help"><a href="/help.html">Help</a></div>
+<div id="header-menu">{{if .URL}}
+<a href="/?source=1&url={{.URL}}">Source</a>{{end}}
+<a href="/help.html">Help</a>
+</div>
 </div>
 {{end}}

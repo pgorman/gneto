@@ -52,9 +52,12 @@ pre {
 #header {
 	margin: 1.5em 0 1em 0;
 }
-#header-help {
+#header-menu {
 	font-size: 0.8em;
 	text-align: right;
+}
+#header-menu a {
+	margin-left: 2em;
 }
 #non-gemini-text {
 	white-space: pre-wrap;
