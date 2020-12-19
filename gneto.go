@@ -21,6 +21,7 @@ var optCSSFile string
 var optDebug bool
 var optKeyFile string
 var optPort string
+var optRobots string
 var optVerbose bool
 var reGemBlank *regexp.Regexp
 var reGemH1 *regexp.Regexp
@@ -60,6 +61,7 @@ func init() {
 	flag.StringVar(&optKeyFile, "key", "", "TLS key file")
 	flag.IntVar(&maxRedirects, "r", 5, "maximum redirects to follow")
 	flag.StringVar(&optPort, "port", "8065", "port on which to serve web interface")
+	flag.StringVar(&optRobots, "robots", "./web/robots.txt", "path to robots.txt file")
 	flag.BoolVar(&optVerbose, "v", false, "print verbose console messages")
 	flag.Parse()
 
@@ -97,6 +99,9 @@ func main() {
 			log.Println("main:", err.Error())
 			http.Error(w, "Internal Server Error", 500)
 		}
+	})
+	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, optRobots)
 	})
 
 	if optCertFile != "" && optKeyFile != "" {
