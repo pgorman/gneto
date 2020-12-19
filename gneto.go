@@ -37,6 +37,7 @@ var tmpls *template.Template
 type templateData struct {
 	HTML  template.HTML
 	Error string
+	Meta  string
 	Title string
 	URL   string
 }
@@ -72,6 +73,7 @@ func init() {
 		"./web/header.html.tmpl",
 		"./web/header-only.html.tmpl",
 		"./web/help.html.tmpl",
+		"./web/input.html.tmpl",
 	}
 	tmpls = template.Must(template.ParseFiles(templateFiles...))
 

@@ -173,7 +173,6 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 
 	rd = bufio.NewReader(conn)
 
-
 	status, err := rd.ReadString("\n"[0])
 	status = strings.Trim(status, "\r\n")
 	if err != nil {
@@ -192,9 +191,6 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		case "1"[0]: // 11 == sensitive input/password
 			// TODO: 11 Get user password.
 		default:
-			// TODO: 1X Get user input.
-			// Send as an escaped, unnamed query, like gemini://gus.guru/search?twtxt
-			// TODO: Do we need to provide a different URL for the form action??
 			var td templateData
 			td.URL = u.String()
 			td.Title = "Gneto " + td.URL
@@ -252,12 +248,12 @@ func serveFile(w http.ResponseWriter, r *http.Request, u *url.URL, rd *bufio.Rea
 
 	f, err := ioutil.TempFile("", "gneto*-"+fileName)
 	if err != nil {
-		err = fmt.Errorf("serveFile: failed to create temp file:", err)
+		err = fmt.Errorf("serveFile: failed to create temp file: %v", err)
 	}
 	defer os.Remove(f.Name()) // clean up
 
 	if _, err := f.ReadFrom(rd); err != nil {
-		err = fmt.Errorf("serveFile: failed to write to temp file:", err)
+		err = fmt.Errorf("serveFile: failed to write to temp file: %v", err)
 	}
 
 	// Note: If we ever want to serve images inline, we'll have to revisit
@@ -266,7 +262,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, u *url.URL, rd *bufio.Rea
 	http.ServeContent(w, r, fileName, time.Time{}, f)
 
 	if err := f.Close(); err != nil {
-		err = fmt.Errorf("serveFile: failed to close temp file:", err)
+		err = fmt.Errorf("serveFile: failed to close temp file: %v", err)
 	}
 
 	return err

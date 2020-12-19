@@ -1,0 +1,16 @@
+{{template "header" .}}
+{{if .Error}}
+<div id="error">ERROR: {{.Error}}</div>
+{{end}}
+{{if .Meta}}
+<div id="gemini-input">
+<h1>{{.Meta}}</h1>
+<form id="input-form" action="/" method="POST">
+<input type="hidden" id="url" name="url" value="{{.URL}}">
+<textarea id="input" name="input" rows="5" cols="80"></textarea>
+<button id="input-form-button">Submit</button>
+</form>
+</div>
+{{end}}
+
+{{template "footer"}}

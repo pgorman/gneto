@@ -32,7 +32,6 @@ Limitations and Known Bugs
 
 The following features are not yet supported, but are planned:
 
-- user input
 - client certificates
 
 The following features may be implemented in the future:

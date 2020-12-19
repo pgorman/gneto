@@ -15,19 +15,26 @@ import (
 // proxy handles requests not covered by another handler.
 func proxy(w http.ResponseWriter, r *http.Request) {
 	var err error
+	var targetURL string
 	var u *url.URL
 
 	if r.Method == http.MethodPost && r.FormValue("url") != "" {
-		http.Redirect(w, r, "/?url="+url.QueryEscape(r.FormValue("url")), http.StatusFound)
+		targetURL = r.FormValue("url")
+		if r.FormValue("input") != "" {
+			targetURL = targetURL+"?"+url.QueryEscape(r.FormValue("input"))
+			if optVerbose || optDebug {
+				log.Println("proxy: submitting Gemini input:", targetURL)
+			}
+		}
+		http.Redirect(w, r, "/?url="+url.QueryEscape(targetURL), http.StatusFound)
 	}
 
 	if r.URL.Query().Get("url") == "" {
 		var td templateData
-		td.URL = ""
-		td.Title = "Gneto " + td.URL
+		td.Title = "Gneto"
 		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
 		if err != nil {
-			log.Println(err)
+			log.Println("proxy", err)
 			http.Error(w, "Internal Server Error", 500)
 		}
 		return
@@ -44,7 +51,6 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i <= maxRedirects; i++ {
 			u, err = proxyGemini(w, r, u)
 			if u != nil && u.Scheme != "gemini" {
-				// Redirect to home?
 				http.Redirect(w, r, u.String(), http.StatusFound)
 			}
 			if err != nil && errors.Is(err, errRedirect) {
