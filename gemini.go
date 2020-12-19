@@ -173,6 +173,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 
 	rd = bufio.NewReader(conn)
 
+
 	status, err := rd.ReadString("\n"[0])
 	status = strings.Trim(status, "\r\n")
 	if err != nil {
@@ -192,7 +193,8 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 			// TODO: 11 Get user password.
 		default:
 			// TODO: 1X Get user input.
-			// as an escaped, unnamed query, like gemini://gus.guru/search?twtxt
+			// Send as an escaped, unnamed query, like gemini://gus.guru/search?twtxt
+			// TODO: Do we need to provide a different URL for the form action??
 			var td templateData
 			td.URL = u.String()
 			td.Title = "Gneto " + td.URL
@@ -221,7 +223,8 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 			}
 		}
 	case "3"[0]: // Status: redirect
-		ru, err := url.Parse(strings.TrimSpace(strings.SplitAfterN(status, " ", 2)[1]))
+		var ru *url.URL
+		ru, err = url.Parse(strings.TrimSpace(strings.SplitAfterN(status, " ", 2)[1]))
 		if err != nil {
 			err = fmt.Errorf("proxyGemini: can't parse redirect URL %s: %v", strings.SplitAfterN(status, " ", 2)[1], err)
 			break
@@ -232,9 +235,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		if ru.Scheme == "" {
 			ru.Scheme = u.Scheme
 		}
+		u = ru
 		errRedirect = errors.New(u.String())
 		err = errRedirect
-		u = ru
 	default: // Statuses 40+ indicate various failures.
 		err = fmt.Errorf("proxyGemini: status: %s", status)
 	}
