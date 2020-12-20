@@ -10,10 +10,15 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
+	"sync"
 )
 
+var muCookies sync.RWMutex
+var cookies []http.Cookie
 var errRedirect error
+var envPassword string
 var maxRedirects int
 var optAddr string
 var optCertFile string
@@ -35,11 +40,36 @@ var reStatus *regexp.Regexp
 var tmpls *template.Template
 
 type templateData struct {
-	HTML  template.HTML
-	Error string
-	Meta  string
-	Title string
-	URL   string
+	HTML   template.HTML
+	Error  string
+	Logout bool
+	Meta   string
+	Title  string
+	URL    string
+}
+
+// authenticate checks for a valid session.
+func authenticate(r *http.Request) bool {
+	auth := false
+
+	if envPassword == "" {
+		auth = true
+	}
+
+	rc, err := r.Cookie("session")
+	if err != nil {
+		auth = false
+	}
+
+	muCookies.RLock()
+	defer muCookies.RUnlock()
+	for _, c := range cookies {
+		if c.Value == rc.Value {
+			auth = true
+		}
+	}
+
+	return auth
 }
 
 // absoluteURL makes lineURL absolute using, if necessary, the host and path of baseURL.
@@ -55,6 +85,12 @@ func absoluteURL(baseURL *url.URL, lineURL string) (*url.URL, error) {
 }
 
 func init() {
+	envPassword, _ = os.LookupEnv("password")
+	if envPassword != "" {
+		cookies = make([]http.Cookie, 0, 12)
+		// TODO: Run a goroutine to reap expired cookies.
+	}
+
 	flag.StringVar(&optAddr, "addr", "127.0.0.1", "IP address on which to serve web interface")
 	flag.StringVar(&optCertFile, "cert", "", "TLS certificate file")
 	flag.StringVar(&optCSSFile, "css", "./web/gneto.css", "path to cascading style sheets file")
@@ -74,6 +110,7 @@ func init() {
 		"./web/header-only.html.tmpl",
 		"./web/help.html.tmpl",
 		"./web/input.html.tmpl",
+		"./web/login.html.tmpl",
 	}
 	tmpls = template.Must(template.ParseFiles(templateFiles...))
 
@@ -91,12 +128,16 @@ func init() {
 func main() {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/login", login)
+	mux.HandleFunc("/logout", logout)
 	mux.HandleFunc("/", proxy)
 	mux.HandleFunc("/gneto.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, optCSSFile)
 	})
 	mux.HandleFunc("/help.html", func(w http.ResponseWriter, r *http.Request) {
-		err := tmpls.ExecuteTemplate(w, "help.html.tmpl", nil)
+		var td templateData
+		td.Title = "Gneto Help"
+		err := tmpls.ExecuteTemplate(w, "help.html.tmpl", td)
 		if err != nil {
 			log.Println("main:", err.Error())
 			http.Error(w, "Internal Server Error", 500)

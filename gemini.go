@@ -33,6 +33,9 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 	var td templateData
 	td.URL = u.String()
 	td.Title = "Gneto " + td.URL
+	if envPassword != "" {
+		td.Logout = true
+	}
 	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
 	if err != nil {
 		log.Println("geminiToHTML:", err)
@@ -190,6 +193,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		var td templateData
 		td.URL = u.String()
 		td.Title = "Gneto " + td.URL
+		if envPassword != "" {
+			td.Logout = true
+		}
 		td.Meta = status[3:]
 		switch status[1] {
 		case "1"[0]: // 11 == sensitive input/password
@@ -284,6 +290,9 @@ func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 	var td templateData
 	td.URL = u.String()
 	td.Title = "Gneto " + td.URL
+	if envPassword != "" {
+		td.Logout = true
+	}
 	err = tmpls.ExecuteTemplate(w, "header-only.html.tmpl", td)
 	if err != nil {
 		log.Println("textToHTML:", err)

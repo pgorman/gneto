@@ -1,0 +1,13 @@
+{{template "header" .}}
+{{if .Error}}
+<div id="error">ERROR: {{.Error}}</div>
+{{end}}
+<div id="gneto-login">
+<h1>Please enter the password!</h1>
+<form id="login-form" action="/login" method="POST">
+<input type="password" id="password" name="password">
+<button id="login-form-button">Log In</button>
+</form>
+</div>
+
+{{template "footer"}}

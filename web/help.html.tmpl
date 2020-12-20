@@ -29,6 +29,14 @@
 
 <pre>$ gneto --help</pre>
 
+<h2>If I run Gneto on the public Internet, how do I password protect it?</h2>
+
+<p>Set a `password` environment variable for Gneto. On Linux, run Gneto like:</p>
+
+<pre>$ password="myV3rySecretPassword" gneto --addr 203.0.113.46</pre>
+
+<p>When supplying a correct password, a client will receive a cookie valid for ninty days or until the next restart of Gneto.</p>
+
 <h2>Firefox gives a "connection timed out" error sometimes!</h2>
 
 <p>In Firefox's preferences, search for "proxy". Select "Auto-detect proxy settings for this network".</p>
@@ -39,6 +47,6 @@
 
 <h2>Who owns Gneto, and how is it licensed?</h2>
 
-<p>Gneto is copyright 2020 Paul Gorman, and distributed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License</a>.</p>
+<p>Gneto is copyright 2020 <a href="https://paulgorman.org/">Paul Gorman</a>, and distributed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License</a>.</p>
 
 {{template "footer"}}

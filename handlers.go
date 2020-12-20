@@ -5,15 +5,87 @@
 package main
 
 import (
+	cryptorand "crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 )
+
+// login displays the page requesting a password.
+func login(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	if r.Method == http.MethodPost && envPassword != "" {
+		if envPassword == r.FormValue("password") {
+			b := make([]byte, 32)
+			_, err = cryptorand.Read(b)
+			if err != nil {
+				log.Println(err)
+			}
+			c := http.Cookie{
+				Name:     "session",
+				Value:    base64.StdEncoding.EncodeToString(b),
+				Expires:  time.Now().Add(90 * 24 * time.Hour),
+				HttpOnly: true,
+			}
+			muCookies.Lock()
+			cookies = append(cookies, c)
+			muCookies.Unlock()
+			http.SetCookie(w, &c)
+			if optDebug {
+				log.Println("login: new login from", r.RemoteAddr)
+			}
+			http.Redirect(w, r, "/", http.StatusFound)
+		} else {
+			log.Println("login: failed login from", r.RemoteAddr)
+		}
+	}
+
+	var td templateData
+	td.Title = "Gneto Login"
+	err = tmpls.ExecuteTemplate(w, "login.html.tmpl", td)
+	if err != nil {
+		log.Println("login:", err)
+		http.Error(w, "Internal Server Error", 500)
+	}
+}
+
+// logout deletes a session cookie.
+func logout(w http.ResponseWriter, r *http.Request) {
+	if envPassword == "" {
+		return
+	}
+
+	rc, err := r.Cookie("session")
+	if err == nil {
+		muCookies.Lock()
+		defer muCookies.Unlock()
+		tc := make([]http.Cookie, len(cookies), len(cookies))
+		for _, c := range cookies {
+			if c.Value == rc.Value {
+				if optDebug {
+					log.Println("logout: removing cookie:", c.Value)
+				}
+				continue
+			}
+			tc = append(tc, c)
+		}
+		cookies = tc
+	}
+
+	http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+}
 
 // proxy handles requests not covered by another handler.
 func proxy(w http.ResponseWriter, r *http.Request) {
+	if !authenticate(r) {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
+
 	var err error
 	var targetURL string
 	var u *url.URL
@@ -42,9 +114,12 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("url") == "" {
 		var td templateData
 		td.Title = "Gneto"
+		if envPassword != "" {
+			td.Logout = true
+		}
 		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
 		if err != nil {
-			log.Println("proxy", err)
+			log.Println("proxy:", err)
 			http.Error(w, "Internal Server Error", 500)
 		}
 		return
@@ -90,6 +165,9 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		td.Error = err.Error()
 		td.URL = u.String()
 		td.Title = "Gneto " + td.URL
+		if envPassword != "" {
+			td.Logout = true
+		}
 		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
 		if err != nil {
 			log.Println(err)

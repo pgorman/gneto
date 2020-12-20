@@ -37,8 +37,11 @@ The following features are not yet supported, but are planned:
 The following features may be implemented in the future:
 
 - proxy Gopher content
-- a "raw" mode to show the original, unrendered source text
-- password protection of the proxy (cookie-based or basic auth security)
+- optionally rendering images inline
+
+Limitations:
+
+- Handling of sensitive input submission needs testing. Don't use it for super-secret stuff yet!
 
 
 Copyright
