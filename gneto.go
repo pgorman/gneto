@@ -54,18 +54,16 @@ func authenticate(r *http.Request) bool {
 
 	if envPassword == "" {
 		auth = true
-	}
-
-	rc, err := r.Cookie("session")
-	if err != nil {
-		auth = false
-	}
-
-	muCookies.RLock()
-	defer muCookies.RUnlock()
-	for _, c := range cookies {
-		if c.Value == rc.Value {
-			auth = true
+	} else {
+		rc, err := r.Cookie("session")
+		if err == nil {
+			muCookies.RLock()
+			defer muCookies.RUnlock()
+			for _, c := range cookies {
+				if c.Value == rc.Value {
+					auth = true
+				}
+			}
 		}
 	}
 
@@ -128,9 +126,9 @@ func init() {
 func main() {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/", proxy)
 	mux.HandleFunc("/login", login)
 	mux.HandleFunc("/logout", logout)
-	mux.HandleFunc("/", proxy)
 	mux.HandleFunc("/gneto.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, optCSSFile)
 	})
