@@ -31,7 +31,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 	pre := false
 
 	var td templateData
-	if u.String() == "" {
+	if u.Scheme == "file" {
 		td.Title = "Gneto "
 	} else {
 		td.URL = u.String()
@@ -162,7 +162,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	var rd *bufio.Reader
 
 	if optHomeFile != "" && u.Scheme == "file" {
-		log.Println("the home file", u.String())
+		if optVerbose {
+			log.Println("proxyGemini: home:", u.String())
+		}
 		f, err := os.Open(u.Path)
 		if err != nil {
 			return u, fmt.Errorf("proxyGemini: failed to open home file: %v", err)

@@ -104,7 +104,7 @@ func purgeOldCookies() {
 		muCookies.Unlock()
 
 		if optVerbose {
-			log.Printf("purgeOldCookies: purged %d stale cookies", stale)
+			log.Printf("purgeOldCookies: purged %d stale cookies, kept %d cookies", stale, len(cookies))
 		}
 
 		time.Sleep(time.Hour)
