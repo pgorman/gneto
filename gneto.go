@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"sync"
+	"time"
 )
 
 var muCookies sync.RWMutex
@@ -20,6 +21,7 @@ var cookies []http.Cookie
 var errRedirect error
 var envPassword string
 var maxRedirects int
+var maxCookieLife time.Duration
 var optAddr string
 var optCertFile string
 var optCSSFile string
@@ -49,7 +51,7 @@ type templateData struct {
 	URL    string
 }
 
-// authenticate checks for a valid session.
+// authenticate checks for a valid session cookie.
 func authenticate(r *http.Request) bool {
 	auth := false
 
@@ -81,6 +83,32 @@ func absoluteURL(baseURL *url.URL, lineURL string) (*url.URL, error) {
 	}
 
 	return baseURL.ResolveReference(u), err
+}
+
+// purgeOldCookies removes cookies older than maxCookieLife from cookies.
+func purgeOldCookies() {
+	for {
+		now := time.Now()
+		stale := 0
+
+		muCookies.Lock()
+		freshCookies := make([]http.Cookie, 0, len(cookies))
+		for _, c := range cookies {
+			if now.Sub(c.Expires) < maxCookieLife {
+				freshCookies = append(freshCookies, c)
+			} else {
+				stale++
+			}
+		}
+		cookies = freshCookies
+		muCookies.Unlock()
+
+		if optVerbose {
+			log.Printf("purgeOldCookies: purged %d stale cookies", stale)
+		}
+
+		time.Sleep(time.Hour)
+	}
 }
 
 func init() {
@@ -123,9 +151,15 @@ func init() {
 	reGemPre = regexp.MustCompile("^```(.*)")
 	reGemQuote = regexp.MustCompile(`^>\s(.*)\s*`)
 	reStatus = regexp.MustCompile(`\d\d .*`)
+
+	maxCookieLife = 90 * 24 * time.Hour
 }
 
 func main() {
+	if envPassword != "" {
+		go purgeOldCookies()
+	}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", proxy)

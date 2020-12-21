@@ -30,7 +30,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			c := http.Cookie{
 				Name:     "session",
 				Value:    base64.StdEncoding.EncodeToString(b),
-				Expires:  time.Now().Add(90 * 24 * time.Hour),
+				Expires:  time.Now().Add(maxCookieLife),
 				HttpOnly: true,
 			}
 			muCookies.Lock()
