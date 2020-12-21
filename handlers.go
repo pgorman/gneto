@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 )
 
@@ -112,15 +113,24 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Query().Get("url") == "" {
-		var td templateData
-		td.Title = "Gneto"
-		if envPassword != "" {
-			td.Logout = true
-		}
-		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
-		if err != nil {
-			log.Println("proxy:", err)
-			http.Error(w, "Internal Server Error", 500)
+		if optHomeFile != "" {
+			// TODO: Custom home page.
+			u, err := url.Parse(path.Join("file://", optHomeFile))
+			if err != nil {
+				log.Println("proxy: failed to parse home file path to URL:", err)
+			}
+			proxyGemini(w, r, u)
+		} else {
+			var td templateData
+			td.Title = "Gneto"
+			if envPassword != "" {
+				td.Logout = true
+			}
+			err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
+			if err != nil {
+				log.Println("proxy:", err)
+				http.Error(w, "Internal Server Error", 500)
+			}
 		}
 		return
 	}

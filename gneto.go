@@ -24,6 +24,7 @@ var optAddr string
 var optCertFile string
 var optCSSFile string
 var optDebug bool
+var optHomeFile string
 var optKeyFile string
 var optPort string
 var optRobots string
@@ -93,6 +94,7 @@ func init() {
 	flag.StringVar(&optCertFile, "cert", "", "TLS certificate file")
 	flag.StringVar(&optCSSFile, "css", "./web/gneto.css", "path to cascading style sheets file")
 	flag.BoolVar(&optDebug, "debug", false, "print very verbose debugging output")
+	flag.StringVar(&optHomeFile, "home", "", "Gemini file to show on home page")
 	flag.StringVar(&optKeyFile, "key", "", "TLS key file")
 	flag.IntVar(&maxRedirects, "r", 5, "maximum redirects to follow")
 	flag.StringVar(&optPort, "port", "8065", "port on which to serve web interface")
