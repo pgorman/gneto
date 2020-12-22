@@ -84,3 +84,9 @@ span.scheme a {
 #url-input-label {
 	display: none;
 }
+#warning {
+	background-color: #ffff88;
+	color: #333;
+	margin: 1em 0 1em 0;
+	padding: 1em;
+}

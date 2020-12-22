@@ -25,7 +25,7 @@ import (
 
 // geminiToHTML reads Gemini text from rd, and writes its HTML equivalent to w.
 // The source URL is stored in u.
-func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
+func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning string) error {
 	var err error
 	list := false
 	pre := false
@@ -35,6 +35,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 		td.Title = "Gneto "
 	} else {
 		td.URL = u.String()
+		td.Warning = warning
 		td.Title = "Gneto " + td.URL
 	}
 	if envPassword != "" {
@@ -160,6 +161,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
 func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, error) {
 	var err error
 	var rd *bufio.Reader
+	var warning string
 
 	if optHomeFile != "" && u.Scheme == "file" {
 		if optVerbose {
@@ -169,7 +171,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		if err != nil {
 			return u, fmt.Errorf("proxyGemini: failed to open home file: %v", err)
 		}
-		geminiToHTML(w, u, bufio.NewReader(f))
+		geminiToHTML(w, u, bufio.NewReader(f), warning)
 	}
 
 	var port string
@@ -187,6 +189,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		return u, fmt.Errorf("proxyGemini: tls.Dial error to %s: %v", u.String(), err)
 	}
 	defer conn.Close()
+
+	warning = checkCert(u, conn)
+
 	fmt.Fprintf(conn, u.String()+"\r\n")
 
 	rd = bufio.NewReader(conn)
@@ -207,6 +212,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	case "1"[0]: // Status: input
 		var td templateData
 		td.URL = u.String()
+		td.Warning = warning
 		td.Title = "Gneto " + td.URL
 		if envPassword != "" {
 			td.Logout = true
@@ -229,15 +235,15 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	case "2"[0]: // Status: success
 		if strings.Contains(status, " text/gemini") {
 			if r.URL.Query().Get("source") != "" {
-				err = textToHTML(w, u, rd)
+				err = textToHTML(w, u, rd, warning)
 			} else {
-				err = geminiToHTML(w, u, rd)
+				err = geminiToHTML(w, u, rd, warning)
 			}
 			if err != nil {
 				break
 			}
 		} else if strings.Contains(status, " text") {
-			err = textToHTML(w, u, rd)
+			err = textToHTML(w, u, rd, warning)
 			if err != nil {
 				break
 			}
@@ -299,11 +305,12 @@ func serveFile(w http.ResponseWriter, r *http.Request, u *url.URL, rd *bufio.Rea
 
 // textToHTML reads non-Gemini text from rd, and writes its HTML equivalent to w.
 // The source URL is stored in u.
-func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader) error {
+func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning string) error {
 	var err error
 
 	var td templateData
 	td.URL = u.String()
+	td.Warning = warning
 	td.Title = "Gneto " + td.URL
 	if envPassword != "" {
 		td.Logout = true

@@ -114,7 +114,6 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Query().Get("url") == "" {
 		if optHomeFile != "" {
-			// TODO: Custom home page.
 			u, err := url.Parse(path.Join("file://", optHomeFile))
 			if err != nil {
 				log.Println("proxy: failed to parse home file path to URL:", err)

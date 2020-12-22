@@ -1,4 +1,3 @@
 {{template "header" .}}
-{{if .Error}}
-<div id="error">ERROR: {{.Error}}</div>
-{{end}}
+{{if .Error}}<div id="error">ERROR: {{.Error}}</div>{{end}}
+{{if .Warning}}<div id="warning">Warning: {{.Warning}}</div>{{end}}
