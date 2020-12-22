@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -92,7 +93,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	var u *url.URL
 
 	if r.Method == http.MethodPost && r.FormValue("url") != "" {
-		targetURL = r.FormValue("url")
+		targetURL = strings.SplitN(r.FormValue("url"), "?", 2)[0]
 
 		if r.FormValue("input") != "" {
 			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("input"))
