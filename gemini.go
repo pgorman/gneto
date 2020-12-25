@@ -167,6 +167,9 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	var rd *bufio.Reader
 	var warning string
 
+	// Section 1.2 of the Gemini spec forbids userinfo URL components.
+	u.User = nil
+
 	if optHomeFile != "" && u.Scheme == "file" {
 		if optVerbose {
 			log.Println("proxyGemini: home:", u.String())
