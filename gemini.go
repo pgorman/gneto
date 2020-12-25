@@ -1,10 +1,6 @@
-// Copyright 2020 Paul Gorman.
+// Copyright 2020 Paul Gorman. Licensed under the GPL.
 
 // Gneto makes Gemini pages available over HTTP.
-//
-// See the Project Gemini documentation and spec at:
-// https://gemini.circumlunar.space/docs/specification.html
-// gemini://gemini.circumlunar.space/docs/
 
 package main
 

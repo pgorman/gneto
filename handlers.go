@@ -1,4 +1,4 @@
-// Copyright 2020 Paul Gorman.
+// Copyright 2020 Paul Gorman. Licensed under the GPL.
 
 // Gneto makes Gemini pages available over HTTP.
 

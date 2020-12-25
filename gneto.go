@@ -1,6 +1,10 @@
-// Copyright 2020 Paul Gorman.
+// Copyright 2020 Paul Gorman. Licensed under the GPL.
 
 // Gneto makes Gemini pages available over HTTP.
+//
+// See the Project Gemini documentation and spec at:
+// https://gemini.circumlunar.space/docs/
+// gemini://gemini.circumlunar.space/docs/
 
 package main
 
@@ -230,6 +234,7 @@ func saveTOFU() {
 }
 
 func init() {
+
 	envPassword, _ = os.LookupEnv("password")
 	if envPassword != "" {
 		cookies = make([]http.Cookie, 0, 12)
