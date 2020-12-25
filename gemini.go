@@ -19,6 +19,13 @@ import (
 	"time"
 )
 
+var htmlEscaper = strings.NewReplacer(
+	`&`, "&amp;",
+	`'`, "&#39;",
+	`<`, "&lt;",
+	`"`, "&#34;",
+)
+
 // geminiToHTML reads Gemini text from rd, and writes its HTML equivalent to w.
 // The source URL is stored in u.
 func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning string) error {
@@ -50,6 +57,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning s
 		if optDebug {
 			fmt.Println(line)
 		}
+		line = htmlEscaper.Replace(line)
 
 		if reGemPre.MatchString(line) {
 			if list {
@@ -68,7 +76,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning s
 			}
 		} else {
 			if pre == true {
-				io.WriteString(w, strings.ReplaceAll(line, "<", "&lt;"))
+				io.WriteString(w, line)
 				continue
 			}
 		}
@@ -325,6 +333,7 @@ func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning str
 		if optDebug {
 			fmt.Println(line)
 		}
+		line = htmlEscaper.Replace(line)
 		io.WriteString(w, line+"\n")
 	}
 	io.WriteString(w, "</pre>\n")

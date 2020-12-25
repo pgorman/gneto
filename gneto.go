@@ -234,7 +234,6 @@ func saveTOFU() {
 }
 
 func init() {
-
 	envPassword, _ = os.LookupEnv("password")
 	if envPassword != "" {
 		cookies = make([]http.Cookie, 0, 12)
