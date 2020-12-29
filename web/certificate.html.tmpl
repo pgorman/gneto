@@ -1,0 +1,14 @@
+{{template "header" .}}
+{{if .Error}}
+<div id="error">ERROR: {{.Error}}</div>
+{{end}}
+<div id="client-cert-ask">
+<h1>Send Client Certificate?</h1>
+<p>The following site has asked you to send a client certificate before it will serve the content you requested:</p>
+<p>{{.URL}}</p>
+<p>We can create a temporary/transient TLS client certificate to send to the server. This will temporarily uniquely identify you to this server, effectively creating a user session. This identity will not be available to other sites, and will expire after {{.Count}} hours.</p>
+<form id="client-cert-form" action="/certificate" method="POST">
+<input type="hidden" id="url" name="url" value="{{.URL}}">
+<button id="client-cert-form-button">Yes, create and send a transient client certificate</button>
+</form>
+{{template "footer"}}

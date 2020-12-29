@@ -17,6 +17,40 @@ import (
 	"time"
 )
 
+// clientCertificateRequired handles transient client certificate choices for our user.
+func clientCertificateRequired(w http.ResponseWriter, r *http.Request) {
+	if !authenticate(r) {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
+
+	var err error
+
+	if r.Method == http.MethodGet && r.URL.Query().Get("url") != "" {
+		if optLogLevel > 1 {
+			log.Println("clientCertificateRequired: asking user whether to create client certificate for:", r.URL.Query().Get("url"))
+		}
+		var td templateData
+		td.Title = "Gneto Client Certificate Confirmation"
+		td.URL = r.URL.Query().Get("url")
+		td.Count = optHours
+		err = tmpls.ExecuteTemplate(w, "certificate.html.tmpl", td)
+		if err != nil {
+			log.Println("clientCertificateRequired:", err)
+			http.Error(w, "Internal Server Error", 500)
+		}
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("url") != "" {
+		u, err := url.Parse(r.FormValue("url"))
+		if err != nil {
+			log.Printf("clientCertificateRequired: failed to parse URL '%s': %v", r.FormValue("url"), err)
+			http.Error(w, "Internal Server Error", 500)
+		}
+		saveClientCert(u)
+		http.Redirect(w, r, "/?url="+url.QueryEscape(r.FormValue("url")), http.StatusFound)
+	}
+}
+
 // login displays the page requesting a password.
 func login(w http.ResponseWriter, r *http.Request) {
 	var err error
@@ -38,7 +72,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			cookies = append(cookies, c)
 			muCookies.Unlock()
 			http.SetCookie(w, &c)
-			if optDebug {
+			if optLogLevel > 0 {
 				log.Println("login: new login from", r.RemoteAddr)
 			}
 			http.Redirect(w, r, "/", http.StatusFound)
@@ -69,7 +103,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		tc := make([]http.Cookie, len(cookies), len(cookies))
 		for _, c := range cookies {
 			if c.Value == rc.Value {
-				if optDebug {
+				if optLogLevel > 1 {
 					log.Println("logout: removing cookie:", c.Value)
 				}
 				continue
@@ -97,7 +131,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 		if r.FormValue("input") != "" {
 			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("input"))
-			if optVerbose || optDebug {
+			if optLogLevel > 2 {
 				log.Println("proxy: submitting Gemini input:", targetURL)
 			}
 		}
@@ -105,7 +139,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		// TODO: Test everything to not show secret in web interface or logs.
 		if r.FormValue("secret") != "" {
 			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("secret"))
-			if optVerbose || optDebug {
+			if optLogLevel > 2 {
 				log.Printf("proxy: submitting Gemini sensitive input: %s?REDACTED_SECRET", r.FormValue("url"))
 			}
 		}
@@ -168,7 +202,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		if optDebug {
+		if optLogLevel > 0 {
 			log.Println(err)
 		}
 		var td templateData

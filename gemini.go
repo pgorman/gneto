@@ -54,7 +54,7 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning s
 	var line string
 	for eof == nil {
 		line, eof = rd.ReadString("\n"[0])
-		if optDebug {
+		if optLogLevel > 2 {
 			fmt.Println(line)
 		}
 		line = htmlEscaper.Replace(line)
@@ -167,11 +167,19 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	var rd *bufio.Reader
 	var warning string
 
+	/* ----------------------------------------------------------------
+	TODO The Gemini spec now forbids request and response META longer than 1024 bytes.
+
+	"If a server sends a <STATUS> which is not a two-digit number or a <META>
+	which exceeds 1024 bytes in length, the client SHOULD close the connection
+	and disregard the response header, informing the user of an error."
+	---------------------------------------------------------------- */
+
 	// Section 1.2 of the Gemini spec forbids userinfo URL components.
 	u.User = nil
 
 	if optHomeFile != "" && u.Scheme == "file" {
-		if optVerbose {
+		if optLogLevel > 1 {
 			log.Println("proxyGemini: home:", u.String())
 		}
 		f, err := os.Open(u.Path)
@@ -188,18 +196,33 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		port = "1965"
 	}
 
-	conn, err := tls.Dial("tcp", u.Hostname()+":"+port, &tls.Config{
-		InsecureSkipVerify: true,
-		MinVersion:         tls.VersionTLS12,
-	})
+	var clientCert tls.Certificate
+	var tc *tls.Config
+	if optHours != 0 {
+		clientCert = matchClientCert(u)
+	}
+	if len(clientCert.Certificate) == 0 {
+		tc = &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS12,
+		}
+	} else {
+		tc = &tls.Config{
+			Certificates:       []tls.Certificate{clientCert},
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS12,
+		}
+	}
+	conn, err := tls.Dial("tcp", u.Hostname()+":"+port, tc)
 	if err != nil {
 		return u, fmt.Errorf("proxyGemini: tls.Dial error to %s: %v", u.String(), err)
 	}
 	defer conn.Close()
 
-	warning = checkCert(u, conn)
+	warning = checkServerCert(u, conn)
 
-	fmt.Fprintf(conn, u.String()+"\r\n")
+	// Split the URL to avoid sending the fragment, if any, to the server.
+	fmt.Fprintf(conn, strings.SplitN(u.String(), "#", 2)[0]+"\r\n")
 
 	rd = bufio.NewReader(conn)
 
@@ -208,7 +231,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	if err != nil {
 		return u, fmt.Errorf("proxyGemini: failed to read status line from buffer: %v", err)
 	}
-	if optVerbose || optDebug {
+	if optLogLevel > 1 {
 		log.Printf("proxyGemini: %s status: %s", u.String(), status)
 	}
 	if !reStatus.MatchString(status) {
@@ -255,7 +278,11 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 				break
 			}
 		} else {
-			err = serveFile(w, r, u, rd)
+			if optTextOnly {
+				err = fmt.Errorf("proxying of non-text types not allowed on this server")
+			} else {
+				err = serveFile(w, r, u, rd)
+			}
 			if err != nil {
 				break
 			}
@@ -276,7 +303,18 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 		u = ru
 		errRedirect = errors.New(u.String())
 		err = errRedirect
-	default: // Statuses 40+ indicate various failures.
+	case "6"[0]: // Status: Client certificate something
+		switch status[1] {
+		case "0"[0]: // 60 == Client certificate required
+			if optHours == 0 {
+				err = fmt.Errorf("proxyGemini: client certificated disabled by --hours option (status: %s)", status)
+				break
+			}
+			http.Redirect(w, r, "/certificate?url="+url.QueryEscape(u.String()), http.StatusFound)
+		default: // Client certificat not autorized, not valid, etc.
+			err = fmt.Errorf("proxyGemini: %s", status)
+		}
+	default: // Statuses 40-59 indicate various failures.
 		err = fmt.Errorf("proxyGemini: status: %s", status)
 	}
 
@@ -333,7 +371,7 @@ func textToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning str
 	var line string
 	for eof == nil {
 		line, eof = rd.ReadString("\n"[0])
-		if optDebug {
+		if optLogLevel > 2 {
 			fmt.Println(line)
 		}
 		line = htmlEscaper.Replace(line)

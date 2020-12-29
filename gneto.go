@@ -9,26 +9,21 @@
 package main
 
 import (
-	"bufio"
-	"crypto/tls"
-	"encoding/base64"
 	"flag"
-	"fmt"
 	"html/template"
 	"log"
+	mathrand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 )
 
-var muPeerCerts sync.RWMutex
-var peerCerts []certificate
-var peerCertsChanged bool
+var muClientCerts sync.RWMutex
+var clientCerts []clientCertificate
+var clientCertsChanged bool
 var muCookies sync.RWMutex
 var cookies []http.Cookie
 var errRedirect error
@@ -38,13 +33,17 @@ var maxCookieLife time.Duration
 var optAddr string
 var optCertFile string
 var optCSSFile string
-var optDebug bool
 var optHomeFile string
+var optHours int
 var optKeyFile string
+var optLogLevel int
 var optPort string
 var optRobots string
+var optTextOnly bool
 var optTrust bool
-var optVerbose bool
+var muServerCerts sync.RWMutex
+var serverCerts []serverCertificate
+var serverCertsChanged bool
 var reGemBlank *regexp.Regexp
 var reGemH1 *regexp.Regexp
 var reGemH2 *regexp.Regexp
@@ -56,13 +55,8 @@ var reGemQuote *regexp.Regexp
 var reStatus *regexp.Regexp
 var tmpls *template.Template
 
-type certificate struct {
-	host    string
-	expires time.Time
-	cert    string
-}
-
 type templateData struct {
+	Count   int
 	HTML    template.HTML
 	Error   string
 	Logout  bool
@@ -106,43 +100,6 @@ func absoluteURL(baseURL *url.URL, lineURL string) (*url.URL, error) {
 	return baseURL.ResolveReference(u), err
 }
 
-// checkCert checks the Gemini server cert against known certs (TOFU).
-func checkCert(u *url.URL, conn *tls.Conn) string {
-	var warning string
-
-	pc := certificate{
-		host:    u.Host,
-		expires: conn.ConnectionState().PeerCertificates[0].NotAfter,
-		cert:    base64.StdEncoding.EncodeToString(conn.ConnectionState().PeerCertificates[0].Raw),
-	}
-
-	muPeerCerts.Lock()
-	for i, c := range peerCerts {
-		if c.host == pc.host {
-			if c.cert == pc.cert {
-				break
-			} else {
-				warning = fmt.Sprintf("The TLS certificate %s sent does not match the certificate it sent last time. However, we will proceed with the request, and trust the new certificate in the future.", c.host)
-				peerCerts[i].cert = pc.cert
-				peerCerts[i].expires = pc.expires
-				peerCertsChanged = true
-			}
-		} else {
-			if i == len(peerCerts)-1 {
-				peerCerts = append(peerCerts, pc)
-				peerCertsChanged = true
-			}
-		}
-	}
-	if len(peerCerts) == 0 {
-		peerCerts = append(peerCerts, pc)
-		peerCertsChanged = true
-	}
-	muPeerCerts.Unlock()
-
-	return warning
-}
-
 // purgeOldCookies removes cookies older than maxCookieLife from cookies.
 func purgeOldCookies() {
 	for {
@@ -161,7 +118,7 @@ func purgeOldCookies() {
 		cookies = freshCookies
 		muCookies.Unlock()
 
-		if optVerbose {
+		if optLogLevel > 1 {
 			log.Printf("purgeOldCookies: purged %d stale cookies, kept %d cookies", stale, len(cookies))
 		}
 
@@ -169,71 +126,9 @@ func purgeOldCookies() {
 	}
 }
 
-// saveTOFU saves known TLS certificates to a file.
-func saveTOFU() {
-	d, err := os.UserCacheDir()
-	if err != nil {
-		optTrust = true
-		log.Println("saveTOFU: unable to find cache directory, so certificate validation is disabled:", err)
-	}
-	tofuFile := path.Join(d, "gneto-tofu.txt")
-
-	f, err := os.Open(tofuFile)
-	if err != nil {
-		log.Printf("saveTOFU: failed to read TOFU cache file '%s': %v", tofuFile, err)
-	}
-	scanner := bufio.NewScanner(f)
-	muPeerCerts.Lock()
-	for scanner.Scan() {
-		split := strings.Split(scanner.Text(), " ")
-		exp, err := time.Parse(time.RFC3339, split[1])
-		if len(split) == 3 && err == nil {
-			c := certificate{
-				host:    split[0],
-				expires: exp,
-				cert:    split[2],
-			}
-			peerCerts = append(peerCerts, c)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		log.Printf("saveTOFU: failed reading line from '%s': %v", tofuFile, err)
-	}
-	muPeerCerts.Unlock()
-	f.Close()
-
-	for {
-		now := time.Now()
-		if peerCertsChanged {
-			muPeerCerts.Lock()
-			certs := make([]certificate, 0, len(peerCerts))
-			for _, c := range peerCerts {
-				if now.After(c.expires) {
-					continue
-				}
-				certs = append(certs, c)
-			}
-			peerCerts = certs
-			muPeerCerts.Unlock()
-
-			f, err := os.Create(tofuFile)
-			if err != nil {
-				log.Printf("saveTOFU: failed to open TOFU cache file '%s' for writing: %v", tofuFile, err)
-				continue
-			}
-			muPeerCerts.RLock()
-			for _, c := range peerCerts {
-				fmt.Fprintf(f, "%s %s %s\n", c.host, c.expires.Format(time.RFC3339), c.cert)
-			}
-			muPeerCerts.RUnlock()
-			f.Close()
-		}
-
-		time.Sleep(10 * time.Minute)
-	}
-}
-
 func init() {
+	mathrand.Seed(time.Now().Unix())
+
 	envPassword, _ = os.LookupEnv("password")
 	if envPassword != "" {
 		cookies = make([]http.Cookie, 0, 12)
@@ -242,15 +137,20 @@ func init() {
 	flag.StringVar(&optAddr, "addr", "127.0.0.1", "IP address on which to serve web interface")
 	flag.StringVar(&optCertFile, "cert", "", "TLS certificate file for web interface")
 	flag.StringVar(&optCSSFile, "css", "./web/gneto.css", "path to cascading style sheets file")
-	flag.BoolVar(&optDebug, "debug", false, "print very verbose debugging output")
+	flag.IntVar(&optLogLevel, "loglevel", 0, "print debugging output; 0=errors only, 1=verbose, 2=very verbose, 3=very very verbose")
 	flag.StringVar(&optHomeFile, "home", "", "Gemini file to show on home page")
+	flag.IntVar(&optHours, "hours", 72, "hours until transient client TLS certificates expire (zero disables client certs)")
 	flag.StringVar(&optKeyFile, "key", "", "TLS key file for web interface")
 	flag.IntVar(&maxRedirects, "r", 5, "maximum redirects to follow")
 	flag.StringVar(&optPort, "port", "8065", "port on which to serve web interface")
 	flag.StringVar(&optRobots, "robots", "./web/robots.txt", "path to robots.txt file")
+	flag.BoolVar(&optTextOnly, "textonly", false, "refuse to proxy non-text file types")
 	flag.BoolVar(&optTrust, "trust", false, "don't warn about TLS certificate changes for visited Gemini sites")
-	flag.BoolVar(&optVerbose, "v", false, "print verbose console messages")
 	flag.Parse()
+
+	if optAddr != "127.0.0.1" && (optHours != 0 || envPassword == "") {
+		log.Println("warning: review the Security Considerations in README.m, and consider settign the 'password' environment variable")
+	}
 
 	templateFiles := []string{
 		"./web/home.html.tmpl",
@@ -261,13 +161,14 @@ func init() {
 		"./web/help.html.tmpl",
 		"./web/input.html.tmpl",
 		"./web/login.html.tmpl",
+		"./web/certificate.html.tmpl",
 	}
 	tmpls = template.Must(template.ParseFiles(templateFiles...))
 
 	reGemBlank = regexp.MustCompile(`^\s*$`)
-	reGemH1 = regexp.MustCompile(`^#[^#]\s*(.*)\s*`)
-	reGemH2 = regexp.MustCompile(`^##[^#]\s*(.*)\s*`)
-	reGemH3 = regexp.MustCompile(`^###[^#]\s*(.*)\s*`)
+	reGemH1 = regexp.MustCompile(`^#\s*([^#].*)\s*`)
+	reGemH2 = regexp.MustCompile(`^##\s*([^#].*)\s*`)
+	reGemH3 = regexp.MustCompile(`^###\s*([^#].*)\s*`)
 	reGemLink = regexp.MustCompile(`^=>\s*(\S*)\s*(.*)`)
 	reGemList = regexp.MustCompile(`^\*\s(.*)\s*`)
 	reGemPre = regexp.MustCompile("^```(.*)")
@@ -277,9 +178,11 @@ func init() {
 	maxCookieLife = 90 * 24 * time.Hour
 
 	if !optTrust {
-		peerCertsChanged = false
-		peerCerts = make([]certificate, 0, 500)
+		serverCertsChanged = false
+		serverCerts = make([]serverCertificate, 0, 500)
 	}
+
+	clientCerts = make([]clientCertificate, 0, 500)
 }
 
 func main() {
@@ -294,6 +197,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", proxy)
+	mux.HandleFunc("/certificate", clientCertificateRequired)
 	mux.HandleFunc("/login", login)
 	mux.HandleFunc("/logout", logout)
 	mux.HandleFunc("/gneto.css", func(w http.ResponseWriter, r *http.Request) {
@@ -313,7 +217,7 @@ func main() {
 	})
 
 	if optCertFile != "" && optKeyFile != "" {
-		if optVerbose {
+		if optLogLevel > 0 {
 			log.Printf("main: starting HTTPS server on %s", optAddr+":"+optPort)
 		}
 		err := http.ListenAndServeTLS(optAddr+":"+optPort, optCertFile, optKeyFile, mux)
@@ -322,7 +226,7 @@ func main() {
 		}
 	}
 
-	if optVerbose {
+	if optLogLevel > 0 {
 		log.Printf("main: serving insecure HTTP server on %s", optAddr+":"+optPort)
 	}
 	err := http.ListenAndServe(optAddr+":"+optPort, mux)
