@@ -3,6 +3,21 @@ Gneto
 
 Gneto is a personal proxy server to make content from the [Gemini Protocol](https://gemini.circumlunar.space/) available over HTTP.
 
+
+Features
+----------------------------------------
+
+- Gento makes Gemini content accessible on platforms that do not yet have mature Gemini clients.
+- If you want a Gemini to HTTP proxy, Gneto improves your privacy by not replying on a proxy hosted by someone else.
+- No JavaScript. Browse from Lynx if you want.
+- Transient client certificates are supported.
+- Customize Gneto's look with standard CSS. Example light and dark themes are provided.
+- Gneto works well running on your workstation's loopback interface, a server on your home LAN, or (with a password enabled) on your public server.
+
+
+Running Gneto From A Binary
+----------------------------------------
+
 Start Gneto like:
 
 ```
@@ -12,7 +27,7 @@ $ ./gneto
 
 …then point your web browser at [your new local Gemini proxy server](http://localhost:8065).
 
-Run `gneto --help` to see all the command-line options.
+Run `gneto --help` to see all Gneto's command-line options.
 
 
 Building Gneto

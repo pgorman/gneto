@@ -33,21 +33,30 @@ func clientCertificateRequired(w http.ResponseWriter, r *http.Request) {
 		td.Title = "Gneto Client Certificate Confirmation"
 		td.URL = r.URL.Query().Get("url")
 		td.Count = optHours
+		if (envPassword) != "" {
+			td.Logout = true
+		}
+		if len(clientCerts) > 0 {
+			td.ManageCerts = true
+		}
 		err = tmpls.ExecuteTemplate(w, "certificate.html.tmpl", td)
 		if err != nil {
 			log.Println("clientCertificateRequired:", err)
 			http.Error(w, "Internal Server Error", 500)
 		}
-	}
-
-	if r.Method == http.MethodPost && r.FormValue("url") != "" {
+	} else if r.Method == http.MethodPost && r.FormValue("url") != "" {
 		u, err := url.Parse(r.FormValue("url"))
 		if err != nil {
 			log.Printf("clientCertificateRequired: failed to parse URL '%s': %v", r.FormValue("url"), err)
 			http.Error(w, "Internal Server Error", 500)
 		}
-		saveClientCert(u)
+		saveClientCert(u, r.FormValue("name"))
 		http.Redirect(w, r, "/?url="+url.QueryEscape(r.FormValue("url")), http.StatusFound)
+	} else {
+		if optLogLevel > 0 {
+			log.Println("clientCertificateRequired: handler accessed without URL in POST or GET")
+		}
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	}
 }
 
@@ -116,6 +125,46 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 }
 
+// manageClientCertificate lets the user view and delete client certificates.
+func manageClientCertificates(w http.ResponseWriter, r *http.Request) {
+	if !authenticate(r) {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
+
+	var err error
+
+	if r.Method == http.MethodGet {
+		var td templateData
+		td.Title = "Gneto Manage Client Certificates"
+		td.Certs = clientCerts
+		if (envPassword) != "" {
+			td.Logout = true
+		}
+		if len(clientCerts) > 0 {
+			td.ManageCerts = true
+		}
+		err = tmpls.ExecuteTemplate(w, "certificates.html.tmpl", td)
+		if err != nil {
+			log.Println("manageClientCertificates:", err)
+			http.Error(w, "Internal Server Error", 500)
+		}
+	}
+
+	if r.Method == http.MethodPost && r.FormValue("url") != "" && r.FormValue("delete") == "delete" {
+		u, err := url.Parse(r.FormValue("url"))
+		if err != nil {
+			log.Printf("manageClientCertificates: failed to parse URL '%s': %v", r.FormValue("url"), err)
+			http.Error(w, "Internal Server Error", 500)
+		}
+		err = deleteClientCert(u)
+		if err != nil {
+			log.Printf("manageClientCertificates: failed to delete certificate for URL '%s': %v", r.FormValue("url"), err)
+			http.Error(w, "Internal Server Error", 500)
+		}
+		http.Redirect(w, r, "/settings/certificates", http.StatusFound)
+	}
+}
+
 // proxy handles requests not covered by another handler.
 func proxy(w http.ResponseWriter, r *http.Request) {
 	if !authenticate(r) {
@@ -136,7 +185,6 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// TODO: Test everything to not show secret in web interface or logs.
 		if r.FormValue("secret") != "" {
 			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("secret"))
 			if optLogLevel > 2 {
@@ -159,6 +207,9 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 			td.Title = "Gneto"
 			if envPassword != "" {
 				td.Logout = true
+			}
+			if len(clientCerts) > 0 {
+				td.ManageCerts = true
 			}
 			err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
 			if err != nil {
@@ -211,6 +262,9 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		td.Title = "Gneto " + td.URL
 		if envPassword != "" {
 			td.Logout = true
+		}
+		if len(clientCerts) > 0 {
+			td.ManageCerts = true
 		}
 		err = tmpls.ExecuteTemplate(w, "home.html.tmpl", td)
 		if err != nil {

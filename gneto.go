@@ -56,14 +56,16 @@ var reStatus *regexp.Regexp
 var tmpls *template.Template
 
 type templateData struct {
-	Count   int
-	HTML    template.HTML
-	Error   string
-	Logout  bool
-	Meta    string
-	Title   string
-	URL     string
-	Warning string
+	Certs       []clientCertificate
+	Count       int
+	Error       string
+	HTML        template.HTML
+	Logout      bool
+	ManageCerts bool
+	Meta        string
+	Title       string
+	URL         string
+	Warning     string
 }
 
 // authenticate checks for a valid session cookie.
@@ -162,6 +164,7 @@ func init() {
 		"./web/input.html.tmpl",
 		"./web/login.html.tmpl",
 		"./web/certificate.html.tmpl",
+		"./web/certificates.html.tmpl",
 	}
 	tmpls = template.Must(template.ParseFiles(templateFiles...))
 
@@ -194,10 +197,15 @@ func main() {
 		go saveTOFU()
 	}
 
+	if optHours > 0 {
+		go purgeOldClientCertificates()
+	}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", proxy)
 	mux.HandleFunc("/certificate", clientCertificateRequired)
+	mux.HandleFunc("/settings/certificates", manageClientCertificates)
 	mux.HandleFunc("/login", login)
 	mux.HandleFunc("/logout", logout)
 	mux.HandleFunc("/gneto.css", func(w http.ResponseWriter, r *http.Request) {

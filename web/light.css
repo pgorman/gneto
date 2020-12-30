@@ -36,6 +36,13 @@ pre {
 	margin: 2em 0 2em 0;
 	padding: 1em 2em 1em 2em;
 }
+#client-cert-form-button {
+	display: block;
+	margin: 1em 0 1em 0;
+}
+#client-cert-name-input {
+	width: 30em;
+}
 #error {
 	color: #ddd;
 	background-color: #660000;
@@ -68,6 +75,9 @@ span.scheme {
 }
 span.scheme a {
 	font-weight: normal;
+}
+#url-asking-for-client-cert {
+	font-weight: bold;
 }
 #url-form {
 	margin: 1.2em 0 1.2em 0;

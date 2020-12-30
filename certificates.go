@@ -1,6 +1,6 @@
 // Copyright 2020 Paul Gorman. Licensed under the AGPL.
 
-// Old Scratch tests Gemini clients.
+// Gneto makes Gemini pages available over HTTP.
 
 package main
 
@@ -26,9 +26,12 @@ import (
 )
 
 type clientCertificate struct {
-	host string
-	path []string
-	cert tls.Certificate
+	Cert     tls.Certificate
+	CertName string
+	Expires  string
+	Host     string
+	Path     []string
+	URL      string
 }
 
 type serverCertificate struct {
@@ -74,9 +77,59 @@ func checkServerCert(u *url.URL, conn *tls.Conn) string {
 	return warning
 }
 
+// deleteClientCert removes the TLS client certificate from clientCerts that
+// best matches URL u. Returns a non-nil error if no client cert matches the URL.
+func deleteClientCert(u *url.URL) error {
+	var err error
+	var bestMatchIndex int
+	var bestMatchScore int
+
+	splitPath := strings.Split(u.Path, "/")
+
+	muClientCerts.Lock()
+
+	for i, c := range clientCerts {
+		if u.Host != c.Host {
+			continue
+		}
+		score := 1
+		for i, p := range splitPath {
+			if p == c.Path[i] {
+				score++
+			}
+		}
+		if score > bestMatchScore {
+			bestMatchScore = score
+			bestMatchIndex = i
+		}
+		if score > len(splitPath) {
+			break
+		}
+	}
+
+	if bestMatchScore > 0 {
+		newCerts := make([]clientCertificate, 0, len(clientCerts))
+		for i, c := range clientCerts {
+			if i == bestMatchIndex {
+				continue
+			}
+			newCerts = append(newCerts, c)
+		}
+		clientCerts = newCerts
+		if optLogLevel > 1 {
+			log.Printf("deleteClientCert: deleted client certificate for %s", u.String())
+		}
+	} else {
+		err = fmt.Errorf("deleteClientCert: no certificate found matching URL '%s'", u.String())
+	}
+	muClientCerts.Unlock()
+
+	return err
+}
+
 // makeCert returns a self-signed TLS certificate.
 // If rsaBits is less than 2048 (e.g., 0), makeCert returns an ed25519 certificate.
-func makeCert(starts time.Time, expires time.Time, rsaBits int) (tls.Certificate, error) {
+func makeCert(starts time.Time, expires time.Time, name string, rsaBits int) (tls.Certificate, error) {
 	var err error
 	var priv interface{}
 	selfCA := true
@@ -104,9 +157,12 @@ func makeCert(starts time.Time, expires time.Time, rsaBits int) (tls.Certificate
 		log.Println("makeCert: failed to generate serial number:", err)
 	}
 
-	ri, err := rand.Int(rand.Reader, big.NewInt(100000000))
-	if err != nil {
-		log.Println("makeCert: failed to generate big int for cert info:", err)
+	if name == "" {
+		ri, err := rand.Int(rand.Reader, big.NewInt(100000000))
+		if err != nil {
+			log.Println("makeCert: failed to generate big int for cert info:", err)
+		}
+		name = ri.String()
 	}
 
 	certInfo := x509.Certificate{
@@ -117,8 +173,8 @@ func makeCert(starts time.Time, expires time.Time, rsaBits int) (tls.Certificate
 		NotBefore:             starts,
 		SerialNumber:          serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{ri.String()},
-			CommonName:   ri.String(),
+			Organization: []string{name},
+			CommonName:   name,
 		},
 	}
 
@@ -175,12 +231,12 @@ func matchClientCert(u *url.URL) tls.Certificate {
 
 	muClientCerts.RLock()
 	for i, c := range clientCerts {
-		if u.Host != c.host {
+		if u.Host != c.Host {
 			continue
 		}
 		score := 1
 		for i, p := range splitPath {
-			if p == c.path[i] {
+			if p == c.Path[i] {
 				score++
 			}
 		}
@@ -194,11 +250,11 @@ func matchClientCert(u *url.URL) tls.Certificate {
 	}
 
 	if bestMatchScore > 0 {
-		matchingCert = clientCerts[bestMatchIndex].cert
+		matchingCert = clientCerts[bestMatchIndex].Cert
 		if optLogLevel > 1 {
-			log.Printf("matchCert: URL %s matched client certificate: %s/%s",
-				u.String(), clientCerts[bestMatchIndex].host,
-				strings.Join(clientCerts[bestMatchIndex].path, "/"))
+			log.Printf("matchCert: URL %s matched client certificate: %s%s",
+				u.String(), clientCerts[bestMatchIndex].Host,
+				strings.Join(clientCerts[bestMatchIndex].Path, "/"))
 		}
 	}
 	muClientCerts.RUnlock()
@@ -217,16 +273,45 @@ func publicKey(priv interface{}) interface{} {
 	}
 }
 
+// purgeOldClientCertificates removes expired certificates from clientCerts.
+func purgeOldClientCertificates() {
+	for {
+		now := time.Now()
+		expired := 0
+
+		muClientCerts.Lock()
+		freshCerts := make([]clientCertificate, 0, len(clientCerts))
+		for _, c := range clientCerts {
+			if now.Before(c.Cert.Leaf.NotAfter) {
+				freshCerts = append(freshCerts, c)
+			} else {
+				expired++
+			}
+		}
+		clientCerts = freshCerts
+		muClientCerts.Unlock()
+
+		if optLogLevel > 1 {
+			log.Printf("purgeOldClientCertificates: purged %d expired certificates, kept %d certificates", expired, len(clientCerts))
+		}
+
+		time.Sleep(time.Hour)
+	}
+}
+
 // saveClientCert adds a TLS client certificate to clientCerts.
-func saveClientCert(u *url.URL) {
+func saveClientCert(u *url.URL, name string) {
 	var err error
 	var newCert clientCertificate
 
-	newCert.host = u.Host
-	newCert.path = strings.Split(u.Path, "/")
+	newCert.URL = u.String()
+	newCert.Host = u.Host
+	newCert.Path = strings.Split(u.Path, "/")
+	newCert.CertName = name
 	starts := time.Now().Add(-time.Hour * time.Duration(24*(mathrand.Intn(100)+1)))
 	expires := time.Now().Add(time.Hour * time.Duration(optHours))
-	newCert.cert, err = makeCert(starts, expires, 2048)
+	newCert.Expires = expires.String()
+	newCert.Cert, err = makeCert(starts, expires, name, 2048)
 	if err != nil {
 		log.Println("proxyGemini: transient client cert generation failed:", err)
 	}

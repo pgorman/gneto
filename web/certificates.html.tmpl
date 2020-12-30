@@ -1,0 +1,21 @@
+{{template "header" .}}
+{{if .Error}}
+<div id="error">ERROR: {{.Error}}</div>
+{{end}}
+<div id="manage-client-certs">
+<h1>Manage Client Certificates</h1>
+{{range .Certs}}
+<div class="client-cert">
+<h3>{{.URL}}</h3>
+<p>Expires: {{.Expires}}{{if .CertName}}<br>
+Name: {{.CertName}}{{end}}</p>
+<form class="delete-client-cert" action="/settings/certificates" method="POST">
+<input type="hidden" name="delete" value="delete">
+<input type="hidden" id="url" name="url" value="{{.URL}}">
+<button id="delete-client-cert-button">DELETE certificate</button>
+</form>
+</div>
+{{else}}
+<p>No client certs found.</p>
+{{end}}
+{{template "footer"}}

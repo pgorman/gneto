@@ -20,7 +20,8 @@
 </form>
 <div id="header-menu">{{if .URL}}
 <a href="/?source=1&url={{.URL}}">Source</a>{{end}}{{if .Logout}}
-<a href="/logout">Log Out</a>{{end}}
+<a href="/logout">Log Out</a>{{end}}{{if .ManageCerts}}
+<a href="/settings/certificates">Manage Certificates</a>{{end}}
 <a href="/help.html">Help</a>
 </div>
 </div>
