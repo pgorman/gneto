@@ -3,6 +3,8 @@ Gneto
 
 Gneto is a personal proxy server to make content from the [Gemini Protocol](https://gemini.circumlunar.space/) available over HTTP.
 
+[![Gneto screenshot](https://paulgorman.org/software/gneto/gneto-screenshot.png)](https://paulgorman.org/software/gneto/gneto-screenshot.png)
+
 
 Features
 ----------------------------------------
@@ -13,8 +15,6 @@ Features
 - Transient client certificates are supported.
 - Customize Gneto's look with standard CSS. Example light and dark themes are provided.
 - Gneto works well running on your workstation's loopback interface, a server on your home LAN, or (with a password enabled) on your public server.
-
-[![Gneto screenshot](https://paulgorman.org/software/gneto/gneto-screenshot.png)](https://paulgorman.org/software/gneto/gneto-screenshot.png)
 
 Running Gneto From A Binary
 ----------------------------------------
@@ -73,6 +73,20 @@ If you run Gneto on your own public server, for your own private use, set the `p
 
 ```
 $ password='myv3ry-Strongpassssword' gneto
+```
+
+FAQ
+----------------------------------------
+
+### How can Gneto run as a service?
+
+On a Linux system running systemd, run Gneto as a user service by copying the `gneto.service` file to `$HOME/.config/systemd/user/`. The unit file assumes Gneto is installed in `$HOME/bin/gneto/`, so edit `gneto.service` if you've installed it elsewhere. Then, activate the unit:
+
+```
+$ systemctl --user daemon-reload
+$ systemctl --user enable gneto
+$ systemctl --user start gneto
+$ systemctl --user status gneto
 ```
 
 Copyright
