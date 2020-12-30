@@ -14,6 +14,7 @@ Features
 - Customize Gneto's look with standard CSS. Example light and dark themes are provided.
 - Gneto works well running on your workstation's loopback interface, a server on your home LAN, or (with a password enabled) on your public server.
 
+[![Gneto screenshot](https://paulgorman.org/software/gneto/gneto-screenshot.png)](https://paulgorman.org/software/gneto/gneto-screenshot.png)
 
 Running Gneto From A Binary
 ----------------------------------------
