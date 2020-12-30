@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -170,14 +171,6 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	var rd *bufio.Reader
 	var warning string
 
-	/* ----------------------------------------------------------------
-	TODO The Gemini spec now forbids request and response META longer than 1024 bytes.
-
-	"If a server sends a <STATUS> which is not a two-digit number or a <META>
-	which exceeds 1024 bytes in length, the client SHOULD close the connection
-	and disregard the response header, informing the user of an error."
-	---------------------------------------------------------------- */
-
 	// Section 1.2 of the Gemini spec forbids userinfo URL components.
 	u.User = nil
 
@@ -228,6 +221,15 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 	fmt.Fprintf(conn, strings.SplitN(u.String(), "#", 2)[0]+"\r\n")
 
 	rd = bufio.NewReader(conn)
+
+	// Gemini specification section 3.1 forbids response header <META> longer than 1024 bytes.
+	header, _ := rd.Peek(1030)
+	if !bytes.Contains(header, []byte("\r\n")) {
+		if optLogLevel > 2 {
+			log.Printf("proxyGemini: server %s sent malformed header: %s", u.Host, string(header))
+		}
+		return u, fmt.Errorf("proxyGemini: first 1030 bytes from %s did not contain the header termination <CR><LF>", u.Host)
+	}
 
 	status, err := rd.ReadString("\n"[0])
 	status = strings.Trim(status, "\r\n")

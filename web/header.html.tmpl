@@ -15,7 +15,7 @@
 <div id="gneto-header-slogan">Your Personal Gemini-to-HTTP Proxy</div>
 <form id="url-form" action="/" method="POST">
 <label id="url-input-label" for="url">URL</label>
-<input id="url-input" name="url" type="url" value="{{.URL}}">
+<input id="url-input" maxlength="1024" name="url" type="url" value="{{.URL}}">
 <button id="url-form-button">Go</button>
 </form>
 <div id="header-menu">{{if .URL}}
