@@ -354,7 +354,8 @@ func saveTOFU() {
 	muServerCerts.Unlock()
 	f.Close()
 
-	for {
+	fails := 0
+	for !optTrust {
 		now := time.Now()
 		if serverCertsChanged {
 			muServerCerts.Lock()
@@ -370,7 +371,13 @@ func saveTOFU() {
 
 			f, err := os.Create(tofuFile)
 			if err != nil {
+				fails++
 				log.Printf("saveTOFU: failed to open TOFU cache file '%s' for writing: %v", tofuFile, err)
+				time.Sleep(10 * time.Minute)
+				if fails > 10 {
+					optTrust = true
+					log.Printf("saveTOFU: failed to open TOFU cache file '%s' for writing %d times, so certificate validation is disabled", tofuFile, fails)
+				}
 				continue
 			}
 			muServerCerts.RLock()
