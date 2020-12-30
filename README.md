@@ -89,6 +89,35 @@ $ systemctl --user start gneto
 $ systemctl --user status gneto
 ```
 
+### How do I customize the way Gneto looks?
+
+When running Gneto, the `--css` command-line option allows specifies a custom cascading style sheet, like:
+
+```
+$ gneto --css $HOME/.gneto/custom.css
+```
+
+A light style sheets is provided in `web/light.css`.
+
+### How do I change the links shown on the home/start page.
+
+Specify a local Gemini file, like:
+
+```
+$ gneto --home ~/myhomepage.gmi
+```
+
+### What command-line options does Gneto accept?
+
+```
+$ gneto --help
+```
+
+### Firefox gives a "connection timed out" error sometimes!
+
+In Firefox's preferences, search for "proxy". Select "Auto-detect proxy settings for this network".
+
+
 Copyright
 ----------------------------------------
 
