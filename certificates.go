@@ -32,6 +32,13 @@ type clientCertificate struct {
 	Host     string
 	Path     []string
 	URL      string
+	Leaf     *x509.Certificate
+}
+
+type persistentCert struct {
+	URL     string `json:"url"`
+	CertPEM string `json:"certPEM"`
+	KeyPEM  string `json:"keyPEM"`
 }
 
 type serverCertificate struct {
@@ -282,6 +289,10 @@ func purgeOldClientCertificates() {
 		muClientCerts.Lock()
 		freshCerts := make([]clientCertificate, 0, len(clientCerts))
 		for _, c := range clientCerts {
+			if optClientCertsFile != "" && c.Cert.Leaf == nil {
+				freshCerts = append(freshCerts, c)
+				continue
+			}
 			if now.Before(c.Cert.Leaf.NotAfter) {
 				freshCerts = append(freshCerts, c)
 			} else {
@@ -307,7 +318,6 @@ func saveClientCert(u *url.URL, name string) {
 	newCert.URL = u.String()
 	newCert.Host = u.Host
 	newCert.Path = strings.Split(u.Path, "/")
-	newCert.CertName = name
 	starts := time.Now().Add(-time.Hour * time.Duration(24*(mathrand.Intn(100)+1)))
 	expires := time.Now().Add(time.Hour * time.Duration(optHours))
 	newCert.Expires = expires.String()
@@ -315,6 +325,8 @@ func saveClientCert(u *url.URL, name string) {
 	if err != nil {
 		log.Println("proxyGemini: transient client cert generation failed:", err)
 	}
+	newCert.Leaf, err = x509.ParseCertificate(newCert.Cert.Certificate[0])
+	newCert.CertName = newCert.Leaf.Subject.CommonName
 
 	muClientCerts.Lock()
 	clientCerts = append(clientCerts, newCert)

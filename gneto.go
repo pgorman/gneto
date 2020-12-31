@@ -9,14 +9,19 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
 	"flag"
 	"html/template"
+	"io/ioutil"
 	"log"
 	mathrand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -32,6 +37,7 @@ var maxRedirects int
 var maxCookieLife time.Duration
 var optAddr string
 var optCertFile string
+var optClientCertsFile string
 var optCSSFile string
 var optHomeFile string
 var optHours int
@@ -138,6 +144,7 @@ func init() {
 
 	flag.StringVar(&optAddr, "addr", "127.0.0.1", "IP address on which to serve web interface")
 	flag.StringVar(&optCertFile, "cert", "", "TLS certificate file for web interface")
+	flag.StringVar(&optClientCertsFile, "clientcerts", "", "path to JSON file listing peristent TLS client certificates")
 	flag.StringVar(&optCSSFile, "css", "./web/gneto.css", "path to cascading style sheets file")
 	flag.IntVar(&optLogLevel, "loglevel", 0, "print debugging output; 0=errors only, 1=verbose, 2=very verbose, 3=very very verbose")
 	flag.StringVar(&optHomeFile, "home", "", "Gemini file to show on home page")
@@ -186,6 +193,46 @@ func init() {
 	}
 
 	clientCerts = make([]clientCertificate, 0, 500)
+
+	if optClientCertsFile != "" {
+		var pCerts []persistentCert
+
+		jc, err := ioutil.ReadFile(optClientCertsFile)
+		if err != nil {
+			log.Printf("init: failed to read persistent TLS client certificates from JSON file '%s': %v", optClientCertsFile, err)
+		} else {
+			err := json.Unmarshal(jc, &pCerts)
+			if err != nil {
+				log.Printf("init: failed to unmarshal JSON client certificates from '%s': %v", optClientCertsFile, err)
+			}
+		}
+
+		for _, pc := range pCerts {
+			var c clientCertificate
+			u, err := url.Parse(pc.URL)
+			if err != nil {
+				log.Printf("init: failed to parse URL %s in client certificate file '%s': %v", c.URL, optClientCertsFile, err)
+				continue
+			}
+			c.URL = pc.URL
+			c.Cert, err = tls.X509KeyPair([]byte(pc.CertPEM), []byte(pc.KeyPEM))
+			if err != nil {
+				log.Printf("init: failed to parse client certificate PEM data for %s: %v", c.URL, err)
+				continue
+			}
+			c.Leaf, err = x509.ParseCertificate(c.Cert.Certificate[0])
+			if err != nil {
+				log.Printf("init: failed to parse certificate leaf for %s: %v", pc.URL, err)
+				continue
+			}
+			c.Expires = c.Leaf.NotAfter.String()
+			c.CertName = c.Leaf.Subject.CommonName
+			c.Host = u.Host
+			c.Path = strings.Split(u.Path, "/")
+
+			clientCerts = append(clientCerts, c)
+		}
+	}
 }
 
 func main() {

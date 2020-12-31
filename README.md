@@ -12,7 +12,7 @@ Features
 - Gento makes Gemini content accessible on platforms that do not yet have mature Gemini clients.
 - If you want a Gemini to HTTP proxy, Gneto improves your privacy by not replying on a proxy hosted by someone else.
 - No JavaScript. Browse from Lynx if you want.
-- Transient client certificates are supported.
+- Gneto supports client certificates.
 - Customize Gneto's look with standard CSS. Example light and dark themes are provided.
 - Gneto works well running on your workstation's loopback interface, a server on your home LAN, or (with a password enabled) on your public server.
 
@@ -50,7 +50,6 @@ Limitations and Known Bugs
 Limitations:
 
 - Handling of sensitive input submission needs testing. Don't use it for super-secret stuff yet!
-- Gneto only supports transient client certificates at this time. There's no way to have it present a persistent TLS client certificate to a Gemini server. This feature will likely be implemented in the near future.
 
 
 Security Considerations
@@ -116,6 +115,16 @@ $ gneto --help
 ### Firefox gives a "connection timed out" error sometimes!
 
 In Firefox's preferences, search for "proxy". Select "Auto-detect proxy settings for this network".
+
+### Can Gneto use my persistent client certificates to identify me to servers?
+
+Yes. Put your certificates in a JSON file, and use `--clientcerts`, like:
+
+```
+$ gneto --clientcerts ~/my-client-certs.json
+```
+
+Note that the PEM values for the public certificate and the private key must be joined into single lines by `\n` literals in the JSON file. The JSON `url` value tells Gneto at which addresses the certificate should be used. See `sample-client-certs.json`.
 
 
 Copyright
