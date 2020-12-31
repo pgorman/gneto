@@ -1,0 +1,110 @@
+#!/bin/bash
+set -euf
+
+# Package binaries for Gento release.
+#
+# This script is NOT for building a single binary for yourself — just do `go build`.
+#
+# $1 is expected to be the release version, like "v1.0".
+#
+# Paul Gorman, 2020.
+
+tag="$1"
+repodir="$HOME"/repo/gneto
+dt=$(date +%Y-%m-%d-%H%m%S)
+sumfile=/tmp/gneto-"$dt"/checksums-SHA256.txt
+
+rm -f "$sumfile"
+
+function package {
+	tag="$1"
+	os="$2"
+	arch="$3"
+	outdir=/tmp/gneto-"$dt"/gneto-"$tag"-"$os"-"$arch"
+	
+	rm -rf "$outdir"
+	mkdir -p "$outdir"
+	cd "$repodir"
+	GOOS="$os" GOARCH="$arch" go build -ldflags="-s -w"
+	[ -f "$repodir"/gneto.exe ] && mv "$repodir"/gneto.exe "$outdir"/
+	[ -f "$repodir"/gneto ] && mv "$repodir"/gneto "$outdir"/
+	cp -r "$repodir"/web "$outdir"/
+	cp "$repodir"/LICENSE.txt  "$outdir"/
+	cp "$repodir"/README.md  "$outdir"/
+	cp "$repodir"/sample-client-certs.json  "$outdir"/
+}
+
+# --------------------------------------
+# linux/amd64
+# --------------------------------------
+os=linux
+arch=amd64
+outdir=/tmp/gneto-"$dt"/gneto-"$1"-"$os"-"$arch"
+
+package "$tag" "$os" "$arch"
+rm -f "$outdir".tgz
+cd /tmp/gneto-"$dt"/
+tar -czf gneto-"$1"-"$os"-"$arch".tgz gneto-"$1"-"$os"-"$arch"
+echo Created "$outdir".tgz
+rm -rf "$outdir"
+sha256sum "$outdir".tgz | tr '/' ' ' | awk '{ print $1, $NF }' >> "$sumfile"
+
+# --------------------------------------
+# linux/arm64
+# --------------------------------------
+os=linux
+arch=arm64
+outdir=/tmp/gneto-"$1"-"$os"-"$arch"
+
+package "$tag" "$os" "$arch"
+rm -f "$outdir".tgz
+cd /tmp/gneto-"$dt"/
+tar -czf gneto-"$1"-"$os"-"$arch".tgz gneto-"$1"-"$os"-"$arch"
+echo Created "$outdir".tgz
+rm -rf "$outdir"
+sha256sum "$outdir".tgz | tr '/' ' ' | awk '{ print $1, $NF }' >> "$sumfile"
+
+# --------------------------------------
+# darwin/amd64
+# --------------------------------------
+os=darwin
+arch=amd64
+outdir=/tmp/gneto-"$1"-"$os"-"$arch"
+
+package "$tag" "$os" "$arch"
+rm -f "$outdir".tgz
+cd /tmp/gneto-"$dt"/
+tar -czf gneto-"$1"-"$os"-"$arch".tgz gneto-"$1"-"$os"-"$arch"
+echo Created "$outdir".tgz
+rm -rf "$outdir"
+sha256sum "$outdir".tgz | tr '/' ' ' | awk '{ print $1, $NF }' >> "$sumfile"
+
+# --------------------------------------
+# openbsd/amd64
+# --------------------------------------
+os=openbsd
+arch=amd64
+outdir=/tmp/gneto-"$1"-"$os"-"$arch"
+
+package "$tag" "$os" "$arch"
+rm -f "$outdir".tgz
+cd /tmp/gneto-"$dt"/
+tar -czf gneto-"$1"-"$os"-"$arch".tgz gneto-"$1"-"$os"-"$arch"
+echo Created "$outdir".tgz
+rm -rf "$outdir"
+sha256sum "$outdir".tgz | tr '/' ' ' | awk '{ print $1, $NF }' >> "$sumfile"
+
+# --------------------------------------
+# windows/amd64
+# --------------------------------------
+os=windows
+arch=amd64
+outdir=/tmp/gneto-"$1"-"$os"-"$arch"
+
+package "$tag" "$os" "$arch"
+rm -f "$outdir".zip
+cd /tmp/gneto-"$dt"/
+zip -r gneto-"$1"-"$os"-"$arch".zip gneto-"$1"-"$os"-"$arch"
+echo Created "$outdir".zip
+rm -rf "$outdir"
+sha256sum "$outdir".zip | tr '/' ' ' | awk '{ print $1, $NF }' >> "$sumfile"

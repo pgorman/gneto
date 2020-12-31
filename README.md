@@ -3,6 +3,8 @@ Gneto
 
 Gneto is a personal proxy server to make content from the [Gemini Protocol](https://gemini.circumlunar.space/) available over HTTP.
 
+Binaries of the latest Gneto release for Linux, macOS ("darwin"), OpenBSD, and Windows are available at [https://paulgorman.org/software/gneto/](https://paulgorman.org/software/gneto/).
+
 [![Gneto screenshot](https://paulgorman.org/software/gneto/gneto-screenshot.png)](https://paulgorman.org/software/gneto/gneto-screenshot.png)
 
 
