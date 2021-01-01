@@ -277,7 +277,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 			}
 		}
 	case "2"[0]: // Status: success
-		if strings.Contains(status, " text/gemini") {
+		if strings.Contains(status, " text/gemini") || len(strings.TrimSpace(status)) < 3 {
 			var td templateData
 			td.URL = u.String()
 			td.Title = "Gneto " + td.URL
