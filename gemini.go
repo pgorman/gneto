@@ -6,7 +6,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -228,13 +227,14 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 
 	rd = bufio.NewReader(conn)
 
-	// Gemini specification section 3.1 forbids response header <META> longer than 1024 bytes.
-	header, _ := rd.Peek(1030)
-	if !bytes.Contains(header, []byte("\r\n")) {
-		if optLogLevel > 2 {
+	// Gemini specification section 3.1 forbids response headers not starting,
+	// with two digits, and a <META> longer than 1024 bytes.
+	header, _ := rd.Peek(1029)
+	if !reGemResponseHeader.Match(header) {
+		if optLogLevel > 1 {
 			log.Printf("proxyGemini: server %s sent malformed header: %s", u.Host, string(header))
 		}
-		return u, fmt.Errorf("proxyGemini: first 1030 bytes from %s did not contain the header termination <CR><LF>", u.Host)
+		return u, fmt.Errorf("proxyGemini: first 1029 bytes from %s did not contain a valid response header", u.Host)
 	}
 
 	status, err := rd.ReadString("\n"[0])

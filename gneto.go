@@ -57,6 +57,7 @@ var reGemH3 *regexp.Regexp
 var reGemLink *regexp.Regexp
 var reGemList *regexp.Regexp
 var reGemPre *regexp.Regexp
+var reGemResponseHeader *regexp.Regexp
 var reGemQuote *regexp.Regexp
 var reStatus *regexp.Regexp
 var tmpls *template.Template
@@ -182,6 +183,7 @@ func init() {
 	reGemLink = regexp.MustCompile(`^=>\s*(\S*)\s*(.*)`)
 	reGemList = regexp.MustCompile(`^\*\s(.*)\s*`)
 	reGemPre = regexp.MustCompile("^```(.*)")
+	reGemResponseHeader = regexp.MustCompile(`^\d{2} (.*)\r\n`)
 	reGemQuote = regexp.MustCompile(`^>\s(.*)\s*`)
 	reStatus = regexp.MustCompile(`\d\d .*`)
 
