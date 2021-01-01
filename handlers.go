@@ -177,19 +177,18 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost && r.FormValue("url") != "" {
 		targetURL = strings.SplitN(r.FormValue("url"), "?", 2)[0]
-
 		if r.FormValue("input") != "" {
 			targetURL = targetURL + "?" + geminiQueryEscape(r.FormValue("input"))
-			if optLogLevel > 2 {
+			if optLogLevel > 1 {
 				log.Println("proxy: submitting Gemini input:", targetURL)
 			}
-		}
-
-		if r.FormValue("secret") != "" {
+		} else if r.FormValue("secret") != "" {
 			targetURL = targetURL + "?" + geminiQueryEscape(r.FormValue("secret"))
-			if optLogLevel > 2 {
+			if optLogLevel > 1 {
 				log.Printf("proxy: submitting Gemini sensitive input: %s?REDACTED_SECRET", r.FormValue("url"))
 			}
+		} else {
+			targetURL = r.FormValue("url")
 		}
 
 		http.Redirect(w, r, "/?url="+geminiQueryEscape(targetURL), http.StatusFound)
