@@ -291,7 +291,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 			if len(l) > 1 {
 				td.Lang = l[1]
 			} else {
-				td.Lang = "en-us"
+				td.Lang = optLang
 			}
 			if r.URL.Query().Get("source") != "" {
 				err = textToHTML(w, u, rd, td)

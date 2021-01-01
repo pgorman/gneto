@@ -42,6 +42,7 @@ var optCSSFile string
 var optHomeFile string
 var optHours int
 var optKeyFile string
+var optLang string
 var optLogLevel int
 var optPort string
 var optRobots string
@@ -155,6 +156,7 @@ func init() {
 	flag.StringVar(&optHomeFile, "home", "", "Gemini file to show on home page")
 	flag.IntVar(&optHours, "hours", 72, "hours until transient client TLS certificates expire (zero disables client certs)")
 	flag.StringVar(&optKeyFile, "key", "", "TLS key file for web interface")
+	flag.StringVar(&optLang, "lang", "en-US", "RFC4646 language for pages that do not supply one")
 	flag.IntVar(&maxRedirects, "r", 5, "maximum redirects to follow")
 	flag.StringVar(&optPort, "port", "8065", "port on which to serve web interface")
 	flag.StringVar(&optRobots, "robots", "./web/robots.txt", "path to robots.txt file")
