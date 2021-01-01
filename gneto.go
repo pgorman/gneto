@@ -50,6 +50,7 @@ var optTrust bool
 var muServerCerts sync.RWMutex
 var serverCerts []serverCertificate
 var serverCertsChanged bool
+var reCharset *regexp.Regexp
 var reGemBlank *regexp.Regexp
 var reGemH1 *regexp.Regexp
 var reGemH2 *regexp.Regexp
@@ -59,14 +60,17 @@ var reGemList *regexp.Regexp
 var reGemPre *regexp.Regexp
 var reGemResponseHeader *regexp.Regexp
 var reGemQuote *regexp.Regexp
+var reLang *regexp.Regexp
 var reStatus *regexp.Regexp
 var tmpls *template.Template
 
 type templateData struct {
 	Certs       []clientCertificate
+	Charset     string
 	Count       int
 	Error       string
 	HTML        template.HTML
+	Lang        string
 	Logout      bool
 	ManageCerts bool
 	Meta        string
@@ -176,6 +180,7 @@ func init() {
 	}
 	tmpls = template.Must(template.ParseFiles(templateFiles...))
 
+	reCharset = regexp.MustCompile(`\bcharset=([\w-]+)`)
 	reGemBlank = regexp.MustCompile(`^\s*$`)
 	reGemH1 = regexp.MustCompile(`^#\s*([^#].*)\s*`)
 	reGemH2 = regexp.MustCompile(`^##\s*([^#].*)\s*`)
@@ -185,6 +190,7 @@ func init() {
 	reGemPre = regexp.MustCompile("^```(.*)")
 	reGemResponseHeader = regexp.MustCompile(`^\d{2} (.*)\r\n`)
 	reGemQuote = regexp.MustCompile(`^>\s(.*)\s*`)
+	reLang = regexp.MustCompile(`\blang=([\w-]+)`)
 	reStatus = regexp.MustCompile(`\d\d .*`)
 
 	maxCookieLife = 90 * 24 * time.Hour

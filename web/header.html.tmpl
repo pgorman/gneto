@@ -1,8 +1,8 @@
 {{define "header"}}
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="{{if .Lang}}{{.Lang}}{{else}}en-us{{end}}">
 <head>
-<meta charset="utf-8">
+<meta charset="{{if .Charset}}{{.Charset}}{{else}}utf-8{{end}}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="shortcut icon" href="/favicon.png" type="image/png">
 <link rel="icon" href="/favicon.png" type="image/png">
