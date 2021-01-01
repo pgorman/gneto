@@ -27,6 +27,12 @@ var htmlEscaper = strings.NewReplacer(
 	`"`, "&#34;",
 )
 
+// geminiQueryEscape returns a URL query string with "+" replaced by "%2O",
+// as requred in secion 1.2 Gemini URI scheme of the Gemini specification.
+func geminiQueryEscape(q string) string {
+	return strings.ReplaceAll(url.PathEscape(q), "+", "%2B")
+}
+
 // geminiToHTML reads Gemini text from rd, and writes its HTML equivalent to w.
 // The source URL is stored in u.
 func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning string) error {
@@ -120,10 +126,10 @@ func geminiToHTML(w http.ResponseWriter, u *url.URL, rd *bufio.Reader, warning s
 
 			if lineURL.Scheme == "gemini" {
 				if link[2] != "" {
-					io.WriteString(w, `<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[2]+
+					io.WriteString(w, `<p><a href="/?url=`+geminiQueryEscape(link[1])+`">`+link[2]+
 						`</a> <span class="scheme"><a href="`+link[1]+`">[`+lineURL.Scheme+`]</a></span></p>`+"\n")
 				} else {
-					io.WriteString(w, `<p><a href="/?url=`+url.QueryEscape(link[1])+`">`+link[1]+
+					io.WriteString(w, `<p><a href="/?url=`+geminiQueryEscape(link[1])+`">`+link[1]+
 						`</a> <span class="scheme"><a href="`+link[1]+`">[`+lineURL.Scheme+`]</a></span></p>`+"\n")
 				}
 			} else {
@@ -318,7 +324,7 @@ func proxyGemini(w http.ResponseWriter, r *http.Request, u *url.URL) (*url.URL, 
 				err = fmt.Errorf("proxyGemini: client certificated disabled by --hours option (status: %s)", status)
 				break
 			}
-			http.Redirect(w, r, "/certificate?url="+url.QueryEscape(u.String()), http.StatusFound)
+			http.Redirect(w, r, "/certificate?url="+geminiQueryEscape(u.String()), http.StatusFound)
 		default: // Client certificat not autorized, not valid, etc.
 			err = fmt.Errorf("proxyGemini: %s", status)
 		}

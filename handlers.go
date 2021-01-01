@@ -51,7 +51,7 @@ func clientCertificateRequired(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", 500)
 		}
 		saveClientCert(u, r.FormValue("name"))
-		http.Redirect(w, r, "/?url="+url.QueryEscape(r.FormValue("url")), http.StatusFound)
+		http.Redirect(w, r, "/?url="+geminiQueryEscape(r.FormValue("url")), http.StatusFound)
 	} else {
 		if optLogLevel > 0 {
 			log.Println("clientCertificateRequired: handler accessed without URL in POST or GET")
@@ -179,20 +179,20 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		targetURL = strings.SplitN(r.FormValue("url"), "?", 2)[0]
 
 		if r.FormValue("input") != "" {
-			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("input"))
+			targetURL = targetURL + "?" + geminiQueryEscape(r.FormValue("input"))
 			if optLogLevel > 2 {
 				log.Println("proxy: submitting Gemini input:", targetURL)
 			}
 		}
 
 		if r.FormValue("secret") != "" {
-			targetURL = targetURL + "?" + url.QueryEscape(r.FormValue("secret"))
+			targetURL = targetURL + "?" + geminiQueryEscape(r.FormValue("secret"))
 			if optLogLevel > 2 {
 				log.Printf("proxy: submitting Gemini sensitive input: %s?REDACTED_SECRET", r.FormValue("url"))
 			}
 		}
 
-		http.Redirect(w, r, "/?url="+url.QueryEscape(targetURL), http.StatusFound)
+		http.Redirect(w, r, "/?url="+geminiQueryEscape(targetURL), http.StatusFound)
 	}
 
 	if r.URL.Query().Get("url") == "" {
