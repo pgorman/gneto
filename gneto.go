@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -163,6 +164,13 @@ func init() {
 	flag.BoolVar(&optTextOnly, "textonly", false, "refuse to proxy non-text file types")
 	flag.BoolVar(&optTrust, "trust", false, "don't warn about TLS certificate changes for visited Gemini sites")
 	flag.Parse()
+
+	if optHomeFile != "" {
+		p, err := filepath.Abs(optHomeFile)
+		if err == nil {
+			optHomeFile = p
+		}
+	}
 
 	if optAddr != "127.0.0.1" && (optHours != 0 || envPassword == "") {
 		log.Println("warning: review the Security Considerations in README.m, and consider settign the 'password' environment variable")
