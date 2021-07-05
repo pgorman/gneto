@@ -236,15 +236,23 @@ func matchClientCert(u *url.URL) tls.Certificate {
 	var bestMatchScore int
 
 	splitPath := strings.Split(u.Path, "/")
+	splitPathLen := len(splitPath)
 
 	muClientCerts.RLock()
 	for i, c := range clientCerts {
 		if u.Host != c.Host {
 			continue
 		}
+		certPathLen := len(c.Path)
+		var l int
+		if splitPathLen < certPathLen {
+			l = splitPathLen
+		} else {
+			l = certPathLen
+		}
 		score := 1
-		for i, p := range splitPath {
-			if p == c.Path[i] {
+		for i := 0; i < l; i++ {
+			if splitPath[i] == c.Path[i] {
 				score++
 			}
 		}
