@@ -225,7 +225,17 @@ func init() {
 				continue
 			}
 			c.URL = pc.URL
-			c.Cert, err = tls.X509KeyPair([]byte(pc.CertPEM), []byte(pc.KeyPEM))
+			certPEM, err := loadCertificate(pc.CertPEM)
+			if err != nil {
+				log.Printf("init: failed to read certificate from %s: %v", pc.CertPEM, err)
+				continue
+			}
+			keyPEM, err := loadCertificate(pc.KeyPEM)
+			if err != nil {
+				log.Printf("init: failed to read certificate private key from %s: %v", pc.KeyPEM, err)
+				continue
+			}
+			c.Cert, err = tls.X509KeyPair(certPEM, keyPEM)
 			if err != nil {
 				log.Printf("init: failed to parse client certificate PEM data for %s: %v", c.URL, err)
 				continue

@@ -14,6 +14,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/big"
 	mathrand "math/rand"
@@ -235,15 +236,23 @@ func matchClientCert(u *url.URL) tls.Certificate {
 	var bestMatchScore int
 
 	splitPath := strings.Split(u.Path, "/")
+	splitPathLen := len(splitPath)
 
 	muClientCerts.RLock()
 	for i, c := range clientCerts {
 		if u.Host != c.Host {
 			continue
 		}
+		certPathLen := len(c.Path)
+		var l int
+		if splitPathLen < certPathLen {
+			l = splitPathLen
+		} else {
+			l = certPathLen
+		}
 		score := 1
-		for i, p := range splitPath {
-			if p == c.Path[i] {
+		for i := 0; i < l; i++ {
+			if splitPath[i] == c.Path[i] {
 				score++
 			}
 		}
@@ -403,3 +412,25 @@ func saveTOFU() {
 		time.Sleep(10 * time.Minute)
 	}
 }
+
+// Return a PEM certificate by first trying to interpret the argument as the
+// certificate data and if that fails as a path to a certificate.
+func loadCertificate(certificate string) ([]byte, error) {
+	if strings.HasPrefix(certificate, "-----BEGIN ") {
+		return []byte(certificate), nil
+	} else {
+		if strings.HasPrefix(certificate, "~") {
+			h, err := os.UserHomeDir()
+			if err != nil {
+				return []byte{}, err
+			}
+			certificate = strings.Replace(certificate, "~", h, 1)
+		}
+		keyPEM, err := ioutil.ReadFile(certificate)
+		if err != nil {
+			return []byte{}, err
+		}
+		return keyPEM, nil
+	}
+}
+
